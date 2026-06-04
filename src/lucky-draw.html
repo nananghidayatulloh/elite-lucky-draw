@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucky Draw - Elite</title>
+    <script src="assets/jquery.min.js"></script>
+    <script src="assets/tailwind.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@700;800&family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --tenant-primary: #2e4f11; --tenant-secondary: #ffdc73; --tenant-tertiary: #a67c00; }
+        body { font-family: 'Inter', sans-serif; }
+        .auth-hero-bg { background: radial-gradient(600px 300px at 100% 0%, rgba(255, 255, 255, 0.18), transparent 40%), linear-gradient(180deg, var(--tenant-primary) 0%, var(--tenant-primary) 50%, var(--tenant-tertiary) 100%); }
+        .auth-hero-dots { position: absolute; inset: 0; z-index: 1; opacity: 0.3; pointer-events: none; background-size: 22px 22px; background-image: radial-gradient(rgba(255, 255, 255, 0.26) 1px, transparent 1px); }
+        .ld-ground-video-wrap { position: absolute; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+        .ld-ground-video-wrap video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+        .ld-festive-overlay { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden; }
+        .ld-festive-overlay::before { content: ""; position: absolute; width: 140%; height: 45%; left: -20%; top: -10%; background: linear-gradient(105deg, transparent 25%, rgba(255, 255, 255, 0.04) 50%, transparent 75%); filter: blur(28px); animation: ld-gold-sweep 10s ease-in-out infinite; }
+        @keyframes ld-gold-sweep { 0%, 100% { transform: translateX(-5%) rotate(-2deg); opacity: 0.7; } 50% { transform: translateX(8%) rotate(1deg); opacity: 1; } }
+        .ld-digit-shell { width: 100%; perspective: 1100px; transform-style: preserve-3d; }
+        .ld-digit-frame { position: relative; display: flex; justify-content: center; gap: clamp(0.55rem, 2.4vw, 1.05rem); padding: clamp(1rem, 2.8vw, 1.45rem) clamp(1rem, 3vw, 1.55rem); border-radius: clamp(1.1rem, 2.8vw, 1.5rem); transform: rotateX(5deg) translateY(2px); transform-style: preserve-3d; background: linear-gradient(168deg, rgba(255, 253, 248, 0.98) 0%, rgba(255, 247, 224, 0.95) 22%, rgba(254, 236, 179, 0.88) 48%, rgba(253, 213, 106, 0.72) 78%, rgba(217, 119, 6, 0.38) 100%); border: 1px solid rgba(146, 64, 14, 0.45); box-shadow: 0 2px 0 rgba(255, 255, 255, 0.55) inset, 0 22px 28px rgba(41, 25, 10, 0.28); }
+        .ld-digit-frame--rolling .ld-digit-cell { animation: ld-digit-roll-pulse 0.14s ease-in-out infinite; filter: saturate(1.08) brightness(1.02); }
+        @keyframes ld-digit-roll-pulse { 0%, 100% { transform: translateY(0) scale(1); } 50% { transform: translateY(-2px) scale(1.02); } }
+        .ld-digit-cell { position: relative; z-index: 1; flex: 1 1 0; min-width: 0; aspect-ratio: 3 / 3.55; max-width: clamp(6.25rem, 22vw, 12rem); border-radius: clamp(0.75rem, 2.2vw, 1.05rem); background: linear-gradient(158deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 252, 245, 0.94) 35%, rgba(254, 243, 199, 0.82) 72%, rgba(253, 224, 138, 0.55) 100%); border: 1px solid rgba(180, 83, 9, 0.38); display: flex; align-items: center; justify-content: center; font-family: "Outfit", sans-serif; font-size: clamp(3.35rem, 14.5vw, 6.75rem); font-weight: 800; color: #1c1917; box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.95), 0 8px 16px rgba(69, 26, 3, 0.18); }
+        .ld-prize-modal-backdrop { position: fixed; inset: 0; z-index: 60; display: none; align-items: center; justify-content: center; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(10px); }
+        .ld-prize-modal-card { width: 100%; max-width: min(28rem, 100%); border-radius: 1.75rem; background: linear-gradient(168deg, rgba(255, 251, 235, 0.99) 0%, rgba(254, 243, 199, 0.95) 38%, rgba(253, 230, 138, 0.88) 72%, rgba(251, 191, 36, 0.42) 100%); border: 1px solid rgba(180, 83, 9, 0.35); box-shadow: 0 18px 46px rgba(69, 26, 3, 0.16); animation: ld-prize-modal-bounce-in 0.5s cubic-bezier(0.34, 1.5, 0.64, 1) both; }
+        @keyframes ld-prize-modal-bounce-in { 0% { opacity: 0; transform: translateY(40px) scale(0.86); } 100% { opacity: 1; transform: translateY(0) scale(1); } }
+        .stage-badge { position: fixed; bottom: 20px; left: 20px; z-index: 50; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); padding: 8px 16px; border-radius: 40px; font-size: 12px; font-weight: bold; color: #ffdc73; font-family: monospace; }
+        .connection-status { position: fixed; top: 20px; right: 20px; z-index: 50; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); padding: 4px 12px; border-radius: 20px; font-size: 10px; color: #ffdc73; font-family: monospace; }
+        .connection-status.connected { color: #4ade80; }
+        .connection-status.disconnected { color: #f87171; }
+        .loading-text { animation: pulse 1.5s ease-in-out infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
+        /* Fullscreen hint */
+        .fullscreen-hint {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 55;
+            background: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 10px;
+            color: #ffdc73;
+            font-family: monospace;
+            opacity: 0.5;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+        .fullscreen-hint:hover { opacity: 1; }
+    </style>
+</head>
+<body class="antialiased bg-gray-100 text-gray-900 overscroll-none overflow-x-hidden">
+
+    <div class="auth-hero-bg relative isolate flex min-h-screen flex-col items-center justify-start overflow-hidden px-4 py-6 pb-10 text-white">
+        
+        <!-- Video Background -->
+        <div class="ld-ground-video-wrap" aria-hidden="true">
+            <video autoplay muted loop playsinline preload="auto">
+                <source src="assets/ground.webm" type="video/webm">
+            </video>
+        </div>
+
+        <div class="auth-hero-dots" aria-hidden="true"></div>
+        <div class="ld-festive-overlay" aria-hidden="true"></div>
+
+        <!-- Title & Logo -->
+        <div class="public-title-layer absolute inset-x-0 top-0 z-[4] flex flex-col items-center justify-center gap-1.5 px-4 pt-14 sm:pt-16 md:pt-20">
+            <img src="assets/logo.png" class="h-auto max-h-12 w-auto max-w-[14rem] object-contain opacity-95 drop-shadow-md">
+            <img src="assets/title.webp" class="h-auto max-h-[13rem] w-auto max-w-[48rem] object-contain opacity-95 drop-shadow-lg">
+        </div>
+
+        <!-- Connection Status -->
+        <div class="connection-status disconnected" id="connection-status" style="z-index: 55;">
+            Waiting for Control Panel...
+        </div>
+
+        <!-- Main Display -->
+        <div class="relative z-10 flex w-full max-w-6xl flex-col items-center gap-5 pt-36 md:pt-52 mt-20">
+            <div class="text-center mb-4">
+                <p id="prize-name-display" class="text-4xl font-bold text-amber-300 uppercase tracking-wider">Please wait</p>
+                <p id="remaining-display" class="text-sm text-amber-200/60 mt-1">Loading data...</p>
+                <p id="prize-price-display" class="text-xs text-amber-300/50 mt-1">💰 -</p>
+            </div>
+
+            <div class="ld-digit-shell w-full max-w-3xl px-2 sm:max-w-4xl md:max-w-5xl">
+                <div class="ld-digit-frame" id="digit-root" data-rolling="0">
+                    <div class="ld-digit-cell"><span id="box-1">0</span></div>
+                    <div class="ld-digit-cell"><span id="box-2">0</span></div>
+                    <div class="ld-digit-cell"><span id="box-3">0</span></div>
+                    <div class="ld-digit-cell"><span id="box-4">0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="stage-badge" id="stage-badge">
+            Loading...
+        </div>
+
+        <!-- Fullscreen Hint -->
+        <div class="fullscreen-hint">
+            ⚡ SPACE = Fullscreen | ESC = Exit
+        </div>
+
+        <!-- Audio Element -->
+        <div id="ld-draw-audio-anchor" data-audio-src="assets/drawing.wav" class="hidden"></div>
+    </div>
+
+    <!-- Winner Modal -->
+    <div class="ld-prize-modal-backdrop" id="winner-modal">
+        <div class="ld-prize-modal-card p-6 text-stone-900 relative">
+            <div class="text-center">
+                <p class="text-xs font-bold tracking-widest text-amber-800 uppercase" id="modal-stage">✨ WINNER ✨</p>
+                <p class="text-sm text-amber-700 mt-1" id="modal-prize">Prize</p>
+                <p class="text-xs text-amber-600 mt-0" id="modal-price">$0</p>
+                <h1 class="text-6xl font-black tracking-tight text-stone-900 my-4 font-mono" id="modal-code">0000</h1>
+                <div class="bg-white/50 border border-amber-900/10 rounded-xl p-4 shadow-inner">
+                    <p class="text-lg font-extrabold text-stone-800" id="modal-name">Attendee Name</p>
+                </div>
+                <button type="button" class="mt-5 w-full bg-stone-900 text-white rounded-xl py-2.5 font-bold text-sm tracking-wide shadow-md" id="close-modal-btn">CLOSE</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="assets/db-config.js"></script>
+    <script>
+        const IS_TAURI = typeof window.__TAURI__ !== 'undefined';
+
+        let rollInterval = null;
+        let currentStage = null;
+        let lastHeartbeat = Date.now();
+        let audioDraw = null;
+
+        // ========== FULLSCREEN FUNCTIONS ==========
+        async function toggleFullscreen() {
+            if (IS_TAURI) {
+                try {
+                    const { getCurrentWindow } = window.__TAURI__.window;
+                    const currentWindow = getCurrentWindow();
+                    const isFullscreen = await currentWindow.isFullscreen();
+                    await currentWindow.setFullscreen(!isFullscreen);
+                    console.log('[Fullscreen] Toggled:', !isFullscreen);
+                } catch (err) {
+                    console.error('[Fullscreen] Tauri error:', err);
+                    // Fallback browser fullscreen
+                    toggleBrowserFullscreen();
+                }
+            } else {
+                toggleBrowserFullscreen();
+            }
+        }
+
+        function toggleBrowserFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(err => {
+                    console.error(`Fullscreen error: ${err.message}`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        async function exitFullscreen() {
+            if (IS_TAURI) {
+                try {
+                    const { getCurrentWindow } = window.__TAURI__.window;
+                    const currentWindow = getCurrentWindow();
+                    const isFullscreen = await currentWindow.isFullscreen();
+                    if (isFullscreen) {
+                        await currentWindow.setFullscreen(false);
+                        console.log('[Fullscreen] Exited fullscreen');
+                    }
+                } catch (err) {
+                    console.error('[Fullscreen] Tauri error:', err);
+                    if (document.fullscreenElement) {
+                        document.exitFullscreen();
+                    }
+                }
+            } else {
+                if (document.fullscreenElement) {
+                    document.exitFullscreen();
+                }
+            }
+        }
+
+        // ========== KEYBOARD EVENT HANDLER ==========
+        $(document).keydown(function(e) {
+            // SPACE key = toggle fullscreen
+            if (e.key === ' ' || e.key === 'Space' || e.code === 'Space') {
+                e.preventDefault();  // Prevent page scrolling
+                toggleFullscreen();
+            }
+            // ESC key = exit fullscreen
+            else if (e.key === 'Escape' || e.key === 'Esc') {
+                e.preventDefault();
+                exitFullscreen();
+            }
+        });
+
+        // ========== DATABASE FUNCTIONS ==========
+        async function getDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function getStages() {
+            const db = await getDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["draw_stages"], "readonly");
+                const store = tx.objectStore("draw_stages");
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result.sort((a,b) => a.sequence - b.sequence));
+                request.onerror = () => reject(request.error);
+                tx.oncomplete = () => db.close();
+            });
+        }
+
+        async function getFirstAvailableStage() {
+            const stages = await getStages();
+            const availableStage = stages.find(s => s.drawn_count < s.quota);
+            return availableStage || (stages.length > 0 ? stages[0] : null);
+        }
+
+        function updateStageDisplay(stage) {
+            if (!stage) return;
+            currentStage = stage;
+            const remaining = stage.quota - (stage.drawn_count || 0);
+            
+            $('#prize-name-display').text(stage.prize_name);
+            $('#remaining-display').text(`🏆 ${stage.stage_name} | Remaining: ${remaining} winner${remaining !== 1 ? 's' : ''}`);
+            $('#prize-price-display').html(`💰 $${stage.prize_price.toLocaleString()}`);
+            $('#stage-badge').html(`🏆 ${stage.prize_name} | ${stage.drawn_count}/${stage.quota} winners | $${stage.prize_price.toLocaleString()}`);
+        }
+
+        async function loadInitialStage() {
+            try {
+                const stage = await getFirstAvailableStage();
+                if (stage) {
+                    updateStageDisplay(stage);
+                    console.log('[Projector] Loaded initial stage:', stage.prize_name);
+                } else {
+                    $('#prize-name-display').text('No Stages Found');
+                    $('#remaining-display').text('Please check database');
+                    $('#stage-badge').html('⚠️ No stages configured');
+                }
+            } catch (err) {
+                console.error('[Projector] Failed to load stage:', err);
+                $('#prize-name-display').text('Database Error');
+                $('#remaining-display').text('Please restart application');
+                $('#stage-badge').html('❌ Database connection failed');
+            }
+        }
+
+        function initAudio() {
+            const audioSrc = $('#ld-draw-audio-anchor').attr('data-audio-src');
+            if (audioSrc) {
+                audioDraw = new Audio(audioSrc);
+                audioDraw.loop = true;
+            }
+        }
+
+        function startRolling(stage) {
+            updateStageDisplay(stage);
+            $('#winner-modal').css('display', 'none');
+            $('#digit-root').addClass('ld-digit-frame--rolling').attr('data-rolling', '1');
+            
+            if (audioDraw) {
+                audioDraw.play().catch(() => console.log('Audio play failed'));
+            }
+            
+            const chars = "0123456789";
+            if (rollInterval) clearInterval(rollInterval);
+            
+            rollInterval = setInterval(function() {
+                $('#box-1').text(chars[Math.floor(Math.random() * chars.length)]);
+                $('#box-2').text(chars[Math.floor(Math.random() * chars.length)]);
+                $('#box-3').text(chars[Math.floor(Math.random() * chars.length)]);
+                $('#box-4').text(chars[Math.floor(Math.random() * chars.length)]);
+            }, 90);
+            
+            updateConnectionStatus(true);
+        }
+
+        function stopRolling(winner, stage) {
+            if (rollInterval) { clearInterval(rollInterval); rollInterval = null; }
+            
+            $('#digit-root').removeClass('ld-digit-frame--rolling').attr('data-rolling', '0');
+            
+            if (audioDraw) {
+                audioDraw.pause();
+                audioDraw.currentTime = 0;
+            }
+
+            const code = winner.lucky_code;
+            $('#box-1').text(code[0] || '0');
+            $('#box-2').text(code[1] || '0');
+            $('#box-3').text(code[2] || '0');
+            $('#box-4').text(code[3] || '0');
+
+            if (stage) updateStageDisplay(stage);
+
+            setTimeout(function() {
+                $('#modal-stage').text((stage?.stage_name || 'LUCKY WINNER').toUpperCase());
+                $('#modal-prize').text(stage?.prize_name || '');
+                $('#modal-price').text(stage?.prize_price ? `$${stage.prize_price.toLocaleString()}` : '');
+                $('#modal-code').text(code);
+                $('#modal-name').text(winner.nama);
+                $('#winner-modal').css('display', 'flex');
+            }, 400);
+        }
+
+        function showIdleState() {
+            if (rollInterval) { clearInterval(rollInterval); rollInterval = null; }
+            $('#digit-root').removeClass('ld-digit-frame--rolling');
+            $('#box-1').text('0');
+            $('#box-2').text('0');
+            $('#box-3').text('0');
+            $('#box-4').text('0');
+        }
+
+        function updateConnectionStatus(connected) {
+            if (connected) {
+                $('#connection-status')
+                    .removeClass('disconnected').addClass('connected')
+                    .html('🔗 Connected to Control Panel');
+            } else {
+                $('#connection-status')
+                    .removeClass('connected').addClass('disconnected')
+                    .html('Waiting for Control Panel...');
+            }
+        }
+
+        async function setupEventListeners() {
+            if (IS_TAURI) {
+                const { listen } = window.__TAURI__.event;
+
+                await listen('draw-start', function(event) {
+                    console.log('[Tauri listen] draw-start', event.payload);
+                    startRolling(event.payload.stage);
+                    lastHeartbeat = Date.now();
+                    updateConnectionStatus(true);
+                });
+
+                await listen('draw-stop', function(event) {
+                    console.log('[Tauri listen] draw-stop', event.payload);
+                    stopRolling(event.payload.winner, event.payload.stage);
+                    lastHeartbeat = Date.now();
+                });
+
+                await listen('stage-update', function(event) {
+                    console.log('[Tauri listen] stage-update', event.payload);
+                    updateStageDisplay(event.payload.stage);
+                    lastHeartbeat = Date.now();
+                    updateConnectionStatus(true);
+                });
+
+                await listen('heartbeat', function() {
+                    lastHeartbeat = Date.now();
+                    updateConnectionStatus(true);
+                });
+
+                console.log('[Tauri] All event listeners registered.');
+                updateConnectionStatus(true);
+
+            } else {
+                // Browser mode
+                window.addEventListener('draw-start', function(e) {
+                    startRolling(e.detail.stage);
+                });
+                window.addEventListener('draw-stop', function(e) {
+                    stopRolling(e.detail.winner, e.detail.stage);
+                });
+                window.addEventListener('stage-update', function(e) {
+                    updateStageDisplay(e.detail.stage);
+                });
+                window.addEventListener('heartbeat', function() {
+                    lastHeartbeat = Date.now();
+                    updateConnectionStatus(true);
+                });
+
+                window.addEventListener('message', function(e) {
+                    const data = e.data;
+                    if (!data || !data.type) return;
+                    if (data.type === 'draw-start') startRolling(data.stage);
+                    if (data.type === 'draw-stop') stopRolling(data.winner, data.stage);
+                    if (data.type === 'stage-update') updateStageDisplay(data.stage);
+                    if (data.type === 'heartbeat') {
+                        lastHeartbeat = Date.now();
+                        updateConnectionStatus(true);
+                    }
+                });
+
+                if (window.opener) {
+                    try {
+                        window.opener.postMessage({ type: 'projector-ready' }, '*');
+                        updateConnectionStatus(true);
+                    } catch(e) {
+                        console.log('Cannot communicate with opener');
+                    }
+                }
+            }
+        }
+
+        $(document).ready(async function() {
+            // Initialize audio
+            initAudio();
+            
+            // Close modal handlers
+            $('#close-modal-btn').click(function() {
+                $('#winner-modal').css('display', 'none');
+            });
+            $('#winner-modal').click(function(e) {
+                if (e.target === this) $(this).css('display', 'none');
+            });
+
+            // Load initial stage from database
+            await loadInitialStage();
+            
+            // Setup event listeners
+            await setupEventListeners();
+
+            // Monitor connection
+            setInterval(function() {
+                if (Date.now() - lastHeartbeat > 5000) {
+                    updateConnectionStatus(false);
+                }
+            }, 3000);
+
+            showIdleState();
+        });
+    </script>
+</body>
+</html>

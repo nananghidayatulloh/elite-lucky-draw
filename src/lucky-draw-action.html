@@ -1,0 +1,525 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lucky Draw Action - Elite</title>
+    <script src="assets/jquery.min.js"></script>
+    <script src="assets/tailwind.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --tenant-primary: #2e4f11; --tenant-secondary: #ffdc73; --tenant-tertiary: #a67c00; }
+        body { font-family: 'Inter', sans-serif; }
+        .auth-hero-bg { background: linear-gradient(180deg, var(--tenant-primary) 0%, var(--tenant-primary) 50%, var(--tenant-tertiary) 100%); }
+        .lucky-draw-action-shell { background: rgba(255, 255, 255, 0.92); border: 1px solid rgba(180, 83, 9, 0.25); box-shadow: 0 18px 44px rgba(0, 0, 0, 0.15); backdrop-filter: blur(14px); }
+        .stage-card { transition: all 0.3s ease; cursor: pointer; }
+        .stage-card.active { border: 2px solid #ffdc73; background: rgba(255, 220, 115, 0.15); }
+        .stage-card.completed { opacity: 0.6; cursor: not-allowed; }
+        .stage-card.completed .stage-check { display: inline-block; }
+        .stage-check { display: none; }
+        .btn-projector { background: rgba(0,0,0,0.3); transition: all 0.2s ease; }
+        .btn-projector:hover { background: rgba(0,0,0,0.5); transform: scale(1.02); }
+        .projector-status { font-size: 11px; padding: 4px 10px; border-radius: 20px; }
+        .projector-status.connected { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+        .projector-status.disconnected { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        .stage-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+    </style>
+</head>
+<body class="antialiased bg-gray-100 text-gray-900">
+
+    <div class="auth-hero-bg relative flex min-h-screen flex-col items-center px-4 py-8 text-white justify-center">
+        
+        <!-- Projector Status & Launch Button -->
+        <div class="w-full max-w-5xl mb-4 flex justify-between items-center">
+            <div id="projector-status" class="projector-status disconnected">
+                ⚫ Projector: Not Connected
+            </div>
+            <button id="btn-launch-projector" class="btn-projector text-white text-sm font-medium px-4 py-2 rounded-xl flex items-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z"/>
+                </svg>
+                Launch Projector Screen
+            </button>
+        </div>
+
+        <!-- Stage Selector - Dynamic from database -->
+        <div class="w-full max-w-5xl mb-6 stage-container" id="stage-container">
+            <div class="text-center text-white col-span-full">Loading stages...</div>
+        </div>
+
+        <div class="w-full max-w-5xl mb-4 flex gap-4">
+            <button id="btn-draw" class="w-4/5 bg-amber-400 hover:bg-amber-300 text-stone-900 font-bold text-xl py-5 rounded-2xl shadow-xl tracking-wider transition-all transform active:scale-95 uppercase disabled:opacity-50 disabled:cursor-not-allowed">
+                START DRAW
+            </button>
+            <a href="index.html" class="w-1/5 bg-stone-800 hover:bg-stone-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-sm">
+                Dashboard
+            </a>
+        </div>
+
+        <div class="lucky-draw-action-shell w-full max-w-5xl overflow-hidden rounded-3xl text-stone-900 p-5">
+            <div class="flex items-center justify-between border-b border-amber-900/10 pb-4 mb-4">
+                <!-- <h1 class="text-base font-bold text-stone-800 tracking-tight">Winner Log - Multi Stage</h1> -->
+                <span class="text-xs bg-stone-200 px-3 py-1 rounded-full font-semibold text-stone-600">Elite Gala Dinner 2026</span>
+            </div>
+
+            <div class="overflow-x-auto bg-white/70 rounded-2xl border border-amber-900/5" style="max-height: 400px; overflow-y: auto;">
+                <table class="min-w-full text-sm divide-y divide-amber-900/10">
+                    <thead class="sticky top-0 bg-stone-100">
+                        <tr class="text-left text-xs font-semibold uppercase tracking-wide text-amber-900/70">
+                            <th class="px-4 py-3">No</th>
+                            <th class="px-4 py-3">Prize</th>
+                            <th class="px-4 py-3">Winner Name</th>
+                            <th class="px-4 py-3">Lucky Code</th>
+                            <!-- <th class="px-4 py-3">Company</th> -->
+                            <th class="px-4 py-3">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-amber-900/5 text-stone-700" id="table-winner-body">
+                        <tr><td colspan="6" class="px-4 py-12 text-center text-stone-500">Loading...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="assets/db-config.js"></script>
+    <script>
+        const IS_TAURI = typeof window.__TAURI__ !== 'undefined';
+
+        let currentStage = null;
+        let isDrawing = false;
+        let projectorReady = false;
+        let heartbeatInterval = null;
+
+        // ========== DATABASE FUNCTIONS ==========
+        async function getDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
+                request.onsuccess = (e) => resolve(e.target.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function getStages() {
+            const db = await getDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["draw_stages"], "readonly");
+                const store = tx.objectStore("draw_stages");
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result.sort((a,b) => a.sequence - b.sequence));
+                request.onerror = () => reject(request.error);
+                tx.oncomplete = () => db.close();
+            });
+        }
+
+        async function updateStageDisplay() {
+            const stages = await getStages();
+            for (const stage of stages) {
+                $(`#stage-${stage.id}-drawn`).text(stage.drawn_count || 0);
+                $(`#stage-${stage.id}-quota`).text(stage.quota);
+                const isCompleted = (stage.drawn_count || 0) >= stage.quota;
+                if (isCompleted) {
+                    $(`#stage-${stage.id}`).addClass('completed');
+                } else {
+                    $(`#stage-${stage.id}`).removeClass('completed');
+                }
+            }
+        }
+
+        async function renderStages() {
+            const stages = await getStages();
+            const container = $('#stage-container');
+            container.empty();
+            
+            if (stages.length === 0) {
+                container.html('<div class="text-center text-white col-span-full">No stages configured. Please check database.</div>');
+                return;
+            }
+            
+            for (const stage of stages) {
+                const isCompleted = (stage.drawn_count || 0) >= stage.quota;
+                const remaining = stage.quota - (stage.drawn_count || 0);
+                
+                container.append(`
+                    <div id="stage-${stage.id}" class="stage-card bg-white/10 backdrop-blur rounded-2xl p-4 text-center cursor-pointer transition-all ${isCompleted ? 'completed' : ''}" data-stage-id="${stage.id}">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="stage-check text-green-400 text-xl">✓</span>
+                            <span class="text-xs text-amber-300">#${stage.sequence}</span>
+                        </div>
+                        <h3 class="font-bold text-white text-sm truncate">${stage.prize_name}</h3>
+                        <p class="text-xs text-amber-200/80 mt-1">${stage.stage_name}</p>
+                        <p class="text-xs text-stone-300 mt-1">💰 $${stage.prize_price.toLocaleString()}</p>
+                        <p class="text-sm font-bold mt-2">
+                            <span id="stage-${stage.id}-drawn">${stage.drawn_count || 0}</span>/<span id="stage-${stage.id}-quota">${stage.quota}</span>
+                            ${remaining > 0 ? `<span class="text-xs text-green-400 ml-1">(${remaining} left)</span>` : '<span class="text-xs text-red-400 ml-1">✓ Done</span>'}
+                        </p>
+                    </div>
+                `);
+            }
+        }
+
+        async function getRemainingParticipants(excludeWinnerIds = []) {
+            const db = await getDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["attendances"], "readonly");
+                const store = tx.objectStore("attendances");
+                const request = store.getAll();
+                request.onsuccess = () => {
+                    let participants = request.result;
+                    participants = participants.filter(p => !excludeWinnerIds.includes(p.id));
+                    resolve(participants);
+                };
+                request.onerror = () => reject(request.error);
+                tx.oncomplete = () => db.close();
+            });
+        }
+
+        async function getAllWinners() {
+            const db = await getDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["winners"], "readonly");
+                const store = tx.objectStore("winners");
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+                tx.oncomplete = () => db.close();
+            });
+        }
+
+        async function drawWinner(stageId) {
+            const stages = await getStages();
+            const currentStageData = stages.find(s => s.id === stageId);
+            
+            if (currentStageData.drawn_count >= currentStageData.quota) {
+                alert(`${currentStageData.prize_name} sudah selesai! ${currentStageData.quota} winner telah dipilih.`);
+                return null;
+            }
+
+            const allWinners = await getAllWinners();
+            const excludedIds = allWinners.map(w => w.attendance_id);
+            const participants = await getRemainingParticipants(excludedIds);
+            
+            if (participants.length === 0) {
+                alert("No more participants available for this prize!");
+                return null;
+            }
+
+            const randomIndex = Math.floor(Math.random() * participants.length);
+            return participants[randomIndex];
+        }
+
+        async function saveWinner(attendance, stageId) {
+            const db = await getDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["winners", "draw_stages"], "readwrite");
+                
+                const winnersStore = tx.objectStore("winners");
+                winnersStore.add({
+                    attendance_id: attendance.id,
+                    stage_id: stageId,
+                    drawn_at: new Date().toISOString()
+                });
+                
+                const stagesStore = tx.objectStore("draw_stages");
+                const getStage = stagesStore.get(stageId);
+                getStage.onsuccess = () => {
+                    const stage = getStage.result;
+                    stage.drawn_count = (stage.drawn_count || 0) + 1;
+                    stagesStore.put(stage);
+                };
+                
+                tx.oncomplete = () => { db.close(); resolve(); };
+                tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        async function renderWinnerTable() {
+            const db = await getDatabase();
+            const stages = await getStages();
+            
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["winners", "attendances"], "readonly");
+                const winnersStore = tx.objectStore("winners");
+                const attendancesStore = tx.objectStore("attendances");
+                
+                const winnersRequest = winnersStore.getAll();
+                winnersRequest.onsuccess = async () => {
+                    const winners = winnersRequest.result;
+                    const winnerRows = [];
+                    
+                    for (let i = 0; i < winners.length; i++) {
+                        const w = winners[i];
+                        const attendanceReq = attendancesStore.get(w.attendance_id);
+                        await new Promise((resolveAtt) => {
+                            attendanceReq.onsuccess = () => {
+                                const attendance = attendanceReq.result;
+                                const stage = stages.find(s => s.id === w.stage_id);
+                                winnerRows.push({
+                                    no: i + 1,
+                                    prize_name: stage?.prize_name || 'Unknown',
+                                    prize_price: stage?.prize_price || 0,
+                                    nama: attendance?.nama || 'Unknown',
+                                    lucky_code: attendance?.lucky_code || '----',
+                                    company: attendance?.company || '-',
+                                    drawn_at: new Date(w.drawn_at).toLocaleTimeString()
+                                });
+                                resolveAtt();
+                            };
+                            attendanceReq.onerror = resolveAtt;
+                        });
+                    }
+                    
+                    $('#table-winner-body').empty();
+                    if (winnerRows.length > 0) {
+                        winnerRows.forEach(w => {
+                            $('#table-winner-body').append(`
+                                <tr class="hover:bg-amber-50/50 transition-colors">
+                                    <td class="px-4 py-3 font-medium">${w.no}</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-bold bg-amber-100 text-amber-700 rounded-md">${w.prize_name}</span></td>
+                                    <td class="px-4 py-3 font-bold text-stone-900">${w.nama}</td>
+                                    <td class="px-4 py-3 font-mono text-amber-700 font-bold">${w.lucky_code}</td>
+                                   <!-- <td class="px-4 py-3 text-stone-600">${w.company}</td> -->
+                                    <td class="px-4 py-3 text-xs text-stone-400">${w.drawn_at}</td>
+                                </tr>
+                            `);
+                        });
+                    } else {
+                        $('#table-winner-body').html(`<tr><td colspan="6" class="px-4 py-12 text-center text-stone-500">No winners yet. Start the draw!</td></tr>`);
+                    }
+                    resolve();
+                };
+                tx.oncomplete = () => db.close();
+            });
+        }
+
+        async function selectStage(stageId) {
+            const stages = await getStages();
+            const stage = stages.find(s => s.id === stageId);
+            
+            if (stage.drawn_count >= stage.quota) {
+                alert(`${stage.prize_name} sudah selesai!`);
+                return false;
+            }
+            
+            $('.stage-card').removeClass('active');
+            $(`#stage-${stageId}`).addClass('active');
+            currentStage = stage;
+            
+            // Send update to projector
+            await emitToProjector('stage-update', { stage: currentStage });
+            
+            return true;
+        }
+
+        async function emitToProjector(eventName, payload) {
+            if (!IS_TAURI) return;
+            try {
+                const { emit } = window.__TAURI__.event;
+                await emit(eventName, payload);
+                console.log(`[Tauri emit] ${eventName}`, payload);
+            } catch (err) {
+                console.warn(`Failed to emit ${eventName}:`, err);
+            }
+        }
+
+        async function openProjectorWindow() {
+            if (IS_TAURI) {
+                try {
+                    const { WebviewWindow } = window.__TAURI__.webviewWindow;
+                    let projWin = await WebviewWindow.getByLabel('main-screen');
+                    if (projWin) {
+                        await projWin.show();
+                        await projWin.setFocus();
+                    } else {
+                        const label = 'main-screen-' + Date.now();
+                        projWin = new WebviewWindow(label, {
+                            url: 'lucky-draw.html',
+                            title: 'Lucky Draw - Main Screen',
+                            width: 1280,
+                            height: 720,
+                            resizable: true,
+                            focus: true,
+                        });
+                        await new Promise((resolve, reject) => {
+                            projWin.once('tauri://created', resolve);
+                            projWin.once('tauri://error', (e) => reject(new Error(String(e))));
+                        });
+                    }
+                    projectorReady = true;
+                    updateProjectorStatus(true);
+                    
+                    if (heartbeatInterval) clearInterval(heartbeatInterval);
+                    heartbeatInterval = setInterval(async () => {
+                        await emitToProjector('heartbeat', {});
+                    }, 2000);
+                } catch (err) {
+                    console.error('Tauri window error:', err);
+                    alert('Gagal membuka Projector Window:\n' + err.message);
+                }
+            } else {
+                const w = window.open('lucky-draw.html', '_blank');
+                if (w) {
+                    projectorReady = true;
+                    updateProjectorStatus(true);
+                } else {
+                    alert('Popup blocked! Izinkan popup untuk site ini.');
+                }
+            }
+        }
+
+        function updateProjectorStatus(connected) {
+            if (connected) {
+                $('#projector-status').removeClass('disconnected').addClass('connected').html('🟢 Projector: Connected');
+            } else {
+                $('#projector-status').removeClass('connected').addClass('disconnected').html('⚫ Projector: Not Connected');
+            }
+        }
+
+        async function startDraw() {
+            if (!currentStage) {
+                alert('Please select a prize first!');
+                return false;
+            }
+            if (currentStage.drawn_count >= currentStage.quota) {
+                alert(`🏆 ${currentStage.prize_name} is already completed!`);
+                return false;
+            }
+            if (!projectorReady) {
+                const confirmOpen = confirm('Projector screen is not open. Open it now?');
+                if (confirmOpen) {
+                    await openProjectorWindow();
+                    setTimeout(() => {
+                        if (projectorReady) startDrawContinue();
+                        else alert('Please click "Launch Projector Screen" manually, then try again.');
+                    }, 1500);
+                    return false;
+                }
+                return false;
+            }
+            return startDrawContinue();
+        }
+
+        async function startDrawContinue() {
+            isDrawing = true;
+            $('#btn-draw').text('STOP & SELECT WINNER').removeClass('bg-amber-400').addClass('bg-red-600');
+            await emitToProjector('draw-start', { stage: currentStage });
+            return true;
+        }
+
+        async function stopDraw() {
+            if (!isDrawing) return;
+            
+            const winner = await drawWinner(currentStage.id);
+            if (!winner) { resetDrawButton(); return; }
+            
+            await saveWinner(winner, currentStage.id);
+            await renderWinnerTable();
+            await renderStages();
+            await updateStageDisplay();
+            
+            await emitToProjector('draw-stop', { winner: winner, stage: currentStage });
+            
+            const stages = await getStages();
+            const updatedStage = stages.find(s => s.id === currentStage.id);
+            if (updatedStage.drawn_count >= updatedStage.quota) {
+                alert(`🎉 ${updatedStage.prize_name} completed!`);
+                $(`#stage-${currentStage.id}`).addClass('completed');
+                
+                // Auto select next available stage
+                const nextStage = stages.find(s => s.drawn_count < s.quota);
+                if (nextStage) {
+                    await selectStage(nextStage.id);
+                } else {
+                    alert('🏆 ALL PRIZES HAVE BEEN AWARDED! 🏆\nCongratulations to all winners!');
+                }
+            }
+            
+            resetDrawButton();
+        }
+
+        async function exitProjectorFullscreen() {
+            if (IS_TAURI) {
+                try {
+                    const { WebviewWindow } = window.__TAURI__.webviewWindow;
+                    let projWin = await WebviewWindow.getByLabel('projector-screen');
+                    if (projWin) {
+                        await projWin.setFullscreen(false);
+                        console.log('[Projector] Exited fullscreen mode');
+                    }
+                } catch (err) {
+                    console.error('Failed to exit fullscreen:', err);
+                }
+            }
+        }
+
+        async function closeProjectorWindow() {
+            if (IS_TAURI) {
+                try {
+                    const { WebviewWindow } = window.__TAURI__.webviewWindow;
+                    let projWin = await WebviewWindow.getByLabel('projector-screen');
+                    if (projWin) {
+                        await projWin.close();
+                        projectorReady = false;
+                        updateProjectorStatus(false);
+                        console.log('[Projector] Window closed');
+                    }
+                } catch (err) {
+                    console.error('Failed to close projector:', err);
+                }
+            }
+        }
+
+        function resetDrawButton() {
+            isDrawing = false;
+            $('#btn-draw').text('START DRAW').removeClass('bg-red-600').addClass('bg-amber-400');
+        }
+
+        // ========== INIT ==========
+        $(document).ready(async function() {
+            try {
+                await renderStages();
+                await renderWinnerTable();
+                
+                const stages = await getStages();
+                if (stages.length > 0) {
+                    // Find first incomplete stage
+                    const firstAvailable = stages.find(s => s.drawn_count < s.quota);
+                    if (firstAvailable) {
+                        await selectStage(firstAvailable.id);
+                    } else {
+                        alert('🏆 All prizes have been awarded! 🏆');
+                    }
+                }
+            } catch (err) {
+                console.error("Failed to initialize:", err);
+                $('#stage-container').html('<div class="text-center text-red-400 col-span-full">Error loading stages. Please check database.</div>');
+            }
+            
+            // Event handlers
+            $(document).on('click', '.stage-card', async function() {
+                if (isDrawing) {
+                    alert('Please stop current draw first!');
+                    return;
+                }
+                const stageId = parseInt($(this).data('stage-id'));
+                await selectStage(stageId);
+            });
+            
+            $('#btn-draw').click(async function() {
+                if (isDrawing) {
+                    await stopDraw();
+                } else {
+                    await startDraw();
+                }
+            });
+            
+            $('#btn-launch-projector').click(async function() {
+                await openProjectorWindow();
+            });
+        });
+    </script>
+</body>
+</html>

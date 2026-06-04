@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Lucky Draw - Dashboard</title>
+    
+    <script src="assets/jquery.min.js"></script>
+    <script src="assets/tailwind.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --tenant-primary: #2e4f11;
+            --tenant-secondary: #ffdc73;
+            --tenant-tertiary: #a67c00;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .auth-hero-bg {
+            background: radial-gradient(700px 350px at 50% 0%, rgba(255, 255, 255, 0.12), transparent 50%),
+                        linear-gradient(180deg, var(--tenant-primary) 0%, #172908 100%);
+        }
+        .menu-grid-card {
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(255, 220, 115, 0.15);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .menu-grid-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--tenant-secondary);
+            box-shadow: 0 20px 30px rgba(0, 0, 0, 0.4);
+        }
+        a.menu-grid-card {
+            text-decoration: none;
+            display: flex;
+        }
+        button.menu-grid-card {
+            width: 100%;
+            text-align: left;
+        }
+    </style>
+</head>
+<body class="antialiased bg-stone-900 text-stone-900 overflow-x-hidden">
+
+    <div class="auth-hero-bg relative min-h-screen flex flex-col justify-between py-8 px-4">
+        
+        <div class="text-center my-auto pt-4 pb-8 relative z-10 space-y-3">
+            <img src="assets/logo.png" class="h-16 w-auto object-contain mx-auto mb-2 drop-shadow-md" loading="lazy" onerror="this.style.display='none'">
+            <div class="space-y-1">
+                <h1 class="text-3xl font-black tracking-tight font-sans uppercase text-white drop-shadow-md sm:text-4xl">
+                    Elite Lucky Draw System
+                </h1>
+                <p class="text-xs text-amber-300/70 tracking-widest uppercase font-semibold">Centralized Control Terminal</p>
+            </div>
+            
+            <div class="inline-flex">
+                <div id="db-status" class="inline-flex items-center gap-2 px-4 py-1.5 bg-black/30 border border-white/5 rounded-full text-xs text-stone-300 font-mono shadow-inner">
+                    <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span> Analyzing Data Storage...
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10 px-4 items-stretch my-auto">
+            
+            <!-- Import Attendance -->
+            <a href="register.html" class="menu-grid-card rounded-3xl p-6 flex flex-col justify-between min-h-[15rem] shadow-2xl group">
+                <div class="space-y-4">
+                    <div class="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-2xl w-12 h-12 flex items-center justify-center group-hover:bg-amber-100/70 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 16.5V9.75m0 0l3 3m-3-3l-3 3M6.75 19.5a4.5 4.5 0 01-1.41-8.775 5.25 5.25 0 0110.233-2.33 3 3 0 013.758 3.848A3.752 3.752 0 0118 19.5H6.75z"/>
+                        </svg>
+                    </div>
+                    <div class="space-y-1.5">
+                        <h2 class="text-lg font-bold text-stone-800 tracking-tight">1. Import Attendance</h2>
+                        <p class="text-xs text-stone-500 leading-relaxed">
+                            Upload your native Excel CSV dataset directly into local memory space and auto-generate unique lucky keys.
+                        </p>
+                    </div>
+                </div>
+                <div class="text-xs font-bold text-amber-800 tracking-wider uppercase group-hover:text-amber-900 group-hover:underline flex items-center gap-1 pt-4">
+                    Access Pipeline &rarr;
+                </div>
+            </a>
+
+            <!-- Control Panel -->
+            <a href="lucky-draw-action.html" class="menu-grid-card rounded-3xl p-6 flex flex-col justify-between min-h-[15rem] shadow-2xl group">
+                <div class="space-y-4">
+                    <div class="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-2xl w-12 h-12 flex items-center justify-center group-hover:bg-amber-100/70 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75"/>
+                        </svg>
+                    </div>
+                    <div class="space-y-1.5">
+                        <h2 class="text-lg font-bold text-stone-800 tracking-tight">2. Control Panel</h2>
+                        <p class="text-xs text-stone-500 leading-relaxed">
+                            The primary engineer cockpit terminal for multi-stage lucky draw control.
+                        </p>
+                    </div>
+                </div>
+                <div class="text-xs font-bold text-amber-800 tracking-wider uppercase group-hover:text-amber-900 group-hover:underline flex items-center gap-1 pt-4">
+                    Launch Operator Cockpit &rarr;
+                </div>
+            </a>
+
+            <!-- Projector Screen - Menggunakan Tauri Window API -->
+            <!-- <button id="btn-launch-proyektor" class="menu-grid-card text-left rounded-3xl p-6 flex flex-col justify-between min-h-[15rem] shadow-2xl group w-full focus:outline-none">
+                <div class="space-y-4">
+                    <div class="p-3 bg-amber-50 text-amber-800 border border-amber-200 rounded-2xl w-12 h-12 flex items-center justify-center group-hover:bg-amber-100/70 transition-colors">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="1.8" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 20.25h12m-7.5-3v3m3-3v3m-10.125-3h17.25c.621 0 1.125-.504 1.125-1.125V4.875c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125z"/>
+                        </svg>
+                    </div>
+                    <div class="space-y-1.5">
+                        <h2 class="text-lg font-bold text-stone-800 tracking-tight">3. Projector Screen</h2>
+                        <p class="text-xs text-stone-500 leading-relaxed">
+                            Initialize the display window layout. Designed to be dragged onto stage monitor setups for rolling visualizer.
+                        </p>
+                    </div>
+                </div>
+                <div id="projector-btn-label" class="text-xs font-bold text-amber-800 tracking-wider uppercase group-hover:text-amber-900 group-hover:underline flex items-center gap-1 pt-4">
+                    Deploy Display Node &rarr;
+                </div>
+            </button> -->
+
+        </div>
+    </div>
+    <script src="assets/db-config.js"></script>
+    <script>
+
+        // ─── Deteksi apakah berjalan di Tauri ───────────────────────────────────────
+        const IS_TAURI = typeof window.__TAURI__ !== 'undefined';
+
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
+                request.onerror = (event) => reject(event.target.error);
+                request.onsuccess = (event) => {
+                    event.target.result.close();
+                    resolve(true);
+                };
+                request.onupgradeneeded = function(event) {   
+                    const db = event.target.result;
+                    
+                    // Hapus store lama
+                    if (db.objectStoreNames.contains("attendances")) db.deleteObjectStore("attendances");
+                    if (db.objectStoreNames.contains("winners")) db.deleteObjectStore("winners");
+                    if (db.objectStoreNames.contains("draw_stages")) db.deleteObjectStore("draw_stages");
+                    
+                    // Tabel Peserta
+                    const attendancesStore = db.createObjectStore("attendances", { keyPath: "id" });
+                    attendancesStore.createIndex("lucky_code", "lucky_code", { unique: true });
+                    attendancesStore.createIndex("original_id", "original_id", { unique: false });
+                    attendancesStore.createIndex("nama", "nama", { unique: false });
+                    attendancesStore.createIndex("name", "name", { unique: false });
+                    attendancesStore.createIndex("email", "email", { unique: false });
+                    attendancesStore.createIndex("company", "company", { unique: false });
+                    attendancesStore.createIndex("phone", "phone", { unique: false });
+                    attendancesStore.createIndex("is_winner", "is_winner", { unique: false });
+                    
+                    // Tabel Winners
+                    const winnersStore = db.createObjectStore("winners", { keyPath: "id", autoIncrement: true });
+                    winnersStore.createIndex("attendance_id", "attendance_id", { unique: false });
+                    winnersStore.createIndex("stage_id", "stage_id", { unique: false });
+                    winnersStore.createIndex("drawn_at", "drawn_at", { unique: false });
+                    
+                    const drawStagesStore = db.createObjectStore("draw_stages", { keyPath: "id" });
+                    
+
+                    const defaultStages = [
+                        { id: 1, stage_name: "Legacy Gala Dinner 2026", prize_name: "Apple Watch Series 11", prize_price: 1799, quota: 250, sequence: 1, drawn_count: 0 },
+                        { id: 2, stage_name: "Legacy Gala Dinner 2026", prize_name: "DJI Osmo Pocket 4", prize_price: 2599, quota: 250, sequence: 2, drawn_count: 0 },
+                        { id: 3, stage_name: "Legacy Gala Dinner 2026", prize_name: "iPad Air M3 128GB 11-inch Tablet", prize_price: 2397, quota: 250, sequence: 3, drawn_count: 0 },
+                        { id: 4, stage_name: "Legacy Gala Dinner 2026", prize_name: "Sharp 55-Inch 4K UHD TV", prize_price: 2500, quota: 250, sequence: 4, drawn_count: 0 },
+                        { id: 5, stage_name: "Legacy Gala Dinner 2026", prize_name: "Roborock Q10 Vacuum Cleaner & Mop Black", prize_price: 1799, quota: 250, sequence: 5, drawn_count: 0 }
+                    ];
+                    
+                    defaultStages.forEach(stage => drawStagesStore.add(stage));
+                    console.log("Database initialized with", defaultStages.length, "stages");
+                };
+            });
+        }
+
+        
+        function verifyDatabase() {
+            return new Promise((resolve) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onsuccess = (event) => {
+                    const db = event.target.result;
+                    const isValid = db.objectStoreNames.contains("attendances") && 
+                                    db.objectStoreNames.contains("draw_stages") && 
+                                    db.objectStoreNames.contains("winners");
+                    db.close();
+                    resolve(isValid);
+                };
+                request.onerror = () => resolve(false);
+            });
+        }
+
+        // ─── Launch Projector: Tauri Window API ─────────────────────────────────────
+        async function launchProjectorWindow() {
+            if (IS_TAURI) {
+                try {
+                    const { WebviewWindow } = window.__TAURI__.webviewWindow;
+
+                    // Cek apakah window projector masih hidup
+                    let projWin = await WebviewWindow.getByLabel('main-screen');
+
+                    if (projWin) {
+                        // Window masih ada — tampilkan dan fokus
+                        await projWin.show();
+                        await projWin.setFocus();
+                    } else {
+                        // Window sudah ditutup/destroyed — buat baru dengan label unik
+                        const label = 'main-screen-' + Date.now();
+                        projWin = new WebviewWindow(label, {
+                            url: 'lucky-draw.html',
+                            title: 'Lucky Draw - Main Screen',
+                            width: 1280,
+                            height: 720,
+                            resizable: true,
+                            focus: true,
+                        });
+
+                        await new Promise((resolve, reject) => {
+                            projWin.once('tauri://created', resolve);
+                            projWin.once('tauri://error', (e) => reject(new Error(String(e))));
+                        });
+                    }
+
+                    $('#projector-btn-label').html('✅ Projector Launched &rarr;');
+                    setTimeout(() => {
+                        $('#projector-btn-label').html('Deploy Display Node &rarr;');
+                    }, 3000);
+
+                } catch (err) {
+                    console.error('Tauri window error:', err);
+                    alert('Gagal membuka Projector Window:\n' + err.message);
+                }
+            } else {
+                // Fallback untuk mode browser (development / testing)
+                const w = window.open('lucky-draw.html', '_blank', 'width=1280,height=720,resizable=yes,menubar=no,toolbar=no,location=no,status=no');
+                if (!w) {
+                    window.open('lucky-draw.html', '_blank');
+                }
+            }
+        }
+
+        async function updateDatabaseStatus() {
+            try {
+                // Inisialisasi database (auto-check)
+                await window.initDatabase();
+                
+                const dbExists = await window.isDatabaseExists();
+                const currentVersion = await window.getCurrentDatabaseVersion();
+                
+                console.log(`Database: Exists=${dbExists}, Version=${currentVersion}`);
+                
+                if (dbExists) {
+                    const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
+                    request.onsuccess = (event) => {
+                        const db = event.target.result;
+                        const countRequest = db.transaction(["draw_stages"], "readonly").objectStore("draw_stages").count();
+                        countRequest.onsuccess = () => {
+                            db.close();
+                            if (countRequest.result > 0) {
+                                $('#db-status')
+                                    .removeClass('text-stone-300')
+                                    .addClass('text-green-300 bg-green-950/40 border border-green-500/30')
+                                    .html(`<span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span> Storage Operational (v${currentVersion})`);
+                            } else {
+                                $('#db-status')
+                                    .removeClass('text-stone-300')
+                                    .addClass('text-yellow-300 bg-yellow-950/40 border border-yellow-500/30')
+                                    .html(`<span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span> Ready - Import Data (v${currentVersion})`);
+                            }
+                        };
+                        countRequest.onerror = () => {
+                            db.close();
+                            $('#db-status')
+                                .removeClass('text-stone-300')
+                                .addClass('text-green-300 bg-green-950/40 border border-green-500/30')
+                                .html(`<span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span> Storage Operational (v${currentVersion})`);
+                        };
+                    };
+                } else {
+                    $('#db-status')
+                        .removeClass('text-stone-300')
+                        .addClass('text-blue-300 bg-blue-950/40 border border-blue-500/30')
+                        .html('<span class="w-2 h-2 rounded-full bg-blue-400 inline-block"></span> Creating Database...');
+                    
+                    // Reload after database created
+                    setTimeout(() => location.reload(), 1500);
+                }
+            } catch (error) {
+                console.error("Init error:", error);
+                $('#db-status')
+                    .removeClass('text-stone-300')
+                    .addClass('text-red-400 bg-red-950/40 border border-red-500/30')
+                    .html('<span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Error: ' + error.message);
+            }
+        }
+
+        $(document).ready(async function() {
+            try {
+                await initIndexedDB();
+                const isValid = await verifyDatabase();
+                await updateDatabaseStatus();
+                
+                if (isValid) {
+                    const checkDataRequest = indexedDB.open(DB_NAME, DB_VERSION);
+                    checkDataRequest.onsuccess = function(event) {
+                        const db = event.target.result;
+                        const countRequest = db.transaction(["draw_stages"], "readonly").objectStore("draw_stages").count();
+                        countRequest.onsuccess = function() {
+                            db.close();
+                            if (countRequest.result > 0) {
+                                $('#db-status')
+                                    .removeClass('text-stone-300')
+                                    .addClass('text-green-300 bg-green-950/40 border border-green-500/30')
+                                    .html('<span class="w-2 h-2 rounded-full bg-green-400 inline-block"></span> Storage Operational');
+                            } else {
+                                $('#db-status')
+                                    .removeClass('text-stone-300')
+                                    .addClass('text-yellow-300 bg-yellow-950/40 border border-yellow-500/30')
+                                    .html('<span class="w-2 h-2 rounded-full bg-yellow-400 inline-block"></span> Storage Operational: Empty Array');
+                            }
+                        };
+                        countRequest.onerror = () => db.close();
+                    };
+                } else {
+                    $('#db-status')
+                        .removeClass('text-stone-300')
+                        .addClass('text-red-400 bg-red-950/40 border border-red-500/30')
+                        .html('<span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Storage Error: Corrupted Schema');
+                }
+                
+            } catch (error) {
+                $('#db-status')
+                    .removeClass('text-stone-300')
+                    .addClass('text-red-400 bg-red-950/40 border border-red-500/30')
+                    .html('<span class="w-2 h-2 rounded-full bg-red-500 inline-block"></span> Pipeline Link Failure: ' + error.message);
+            }
+
+            // ─── Projector Button ───────────────────────────────────────────────────
+            $('#btn-launch-proyektor').click(function() {
+                launchProjectorWindow();
+            });
+        });
+    </script>
+</body>
+</html>

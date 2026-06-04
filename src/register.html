@@ -1,0 +1,744 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite Lucky Draw - Import Attendance</title>
+    
+    <script src="assets/jquery.min.js"></script>
+    <script src="assets/tailwind.min.js"></script>
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --tenant-primary: #2e4f11;
+            --tenant-secondary: #ffdc73;
+            --tenant-tertiary: #a67c00;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .auth-hero-bg {
+            background: radial-gradient(600px 300px at 100% 0%, rgba(255, 255, 255, 0.12), transparent 40%),
+                        linear-gradient(180deg, var(--tenant-primary) 0%, #1e330b 100%);
+        }
+        .menu-card {
+            background: rgba(255, 255, 255, 0.98);
+            border: 1px solid rgba(255, 220, 115, 0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #2e4f11 0%, #4a7a1a 100%);
+            transition: all 0.2s ease;
+        }
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(46, 79, 17, 0.3);
+        }
+        .btn-secondary {
+            background: #f4f4f5;
+            color: #3f3f46;
+            border: 1px solid #e4e4e7;
+            transition: all 0.2s ease;
+        }
+        .btn-secondary:hover {
+            background: #e4e4e7;
+            color: #18181b;
+        }
+        .dropzone {
+            border: 2px dashed #cbd5e1;
+            background: #f8fafc;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .dropzone:hover, .dropzone.drag-over {
+            border-color: var(--tenant-tertiary);
+            background: rgba(255, 220, 115, 0.04);
+        }
+    </style>
+</head>
+<body class="antialiased bg-stone-900 text-stone-900 overflow-x-hidden">
+
+    <div class="auth-hero-bg relative min-h-screen flex flex-col justify-between py-6 px-4">
+        
+        <!-- Top Navigation -->
+        <div class="max-w-6xl w-full mx-auto flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+            <a href="index.html" class="inline-flex items-center text-sm font-medium text-amber-200/80 hover:text-amber-200 transition-colors group">
+                <svg class="w-5 h-5 mr-2 transform group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                </svg>
+                Dashboard Menu
+            </a>
+            <span class="text-xs font-mono text-white/40 tracking-wider uppercase">Elite Lucky Draw</span>
+        </div>
+
+        <!-- Main Workspace -->
+        <div class="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start my-auto">
+            
+            <!-- Left Column: Guide & Rules (4 Cols) -->
+            <div class="lg:col-span-4 space-y-4 text-white">
+                <div class="space-y-2">
+                    <span class="text-xs font-bold text-amber-400 uppercase tracking-widest block">Step 01</span>
+                    <h1 class="text-3xl font-black tracking-tight font-sans text-white uppercase">Import<br>Attendance</h1>
+                    <p class="text-stone-300 text-sm leading-relaxed">
+                        Populate your local system with raw spreadsheet data. The engine will clean, map, and bind a unique lucky number sequence to each valid entity.
+                    </p>
+                </div>
+                
+                <div class="bg-black/20 border border-white/5 rounded-2xl p-4 space-y-3 text-xs text-stone-300 font-mono">
+                    <span class="font-bold text-amber-300 block">📋 CSV REQUIREMENT SPEC:</span>
+                    <ul class="space-y-2 list-disc list-inside text-stone-400">
+                        <li>Encapsulation: UTF-8 standard text</li>
+                        <li>Delimiter auto-detect: <code class="text-amber-200">,</code> or <code class="text-amber-200">;</code></li>
+                        <li>Required column header: <code class="text-white">ID</code></li>
+                        <li>Recommended header: <code class="text-white">Full Name</code> / <code class="text-white">Company</code></li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Right Column: Interactive Console Area (8 Cols) -->
+            <div class="lg:col-span-8 w-full">
+                <div class="menu-card rounded-3xl p-6 shadow-2xl space-y-6">
+                    
+                    <!-- Dropzone Box -->
+                    <div id="dropzone" class="dropzone rounded-2xl p-10 text-center relative group">
+                        <div id="dropzone-content" class="space-y-3">
+                            <div class="w-12 h-12 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-stone-800">Click to browse or drop file here</p>
+                                <p class="text-xs text-stone-400 mt-1">Accepts native Microsoft Excel CSV format</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input type="file" id="csv-file" accept=".csv" class="hidden" />
+
+                    <!-- Reactive Selection Status Info -->
+                    <div id="file-info" class="hidden p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-700 font-mono">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2 truncate">
+                                <span class="w-2 h-2 rounded-full bg-green-500"></span>
+                                <span class="font-bold text-stone-900 truncate" id="file-name"></span>
+                            </div>
+                            <span id="file-size" class="text-stone-400 shrink-0 ml-4"></span>
+                        </div>
+                    </div>
+
+                    <!-- Progress Indicator Box -->
+                    <div id="progress-section" class="hidden p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-2">
+                        <div class="flex justify-between text-xs font-mono font-semibold">
+                            <span class="text-stone-600 animate-pulse" id="progress-status-text">📊 Executing transaction...</span>
+                            <span class="text-stone-900" id="progress-count">0</span>
+                        </div>
+                        <div class="w-full bg-stone-200 rounded-full h-1.5 overflow-hidden">
+                            <div id="progress-bar" class="bg-gradient-to-r from-emerald-600 to-green-500 h-1.5 rounded-full transition-all duration-150" style="width: 0%"></div>
+                        </div>
+                    </div>
+
+                    <!-- Live Notice Board Output Message -->
+                    <div id="result-section" class="hidden">
+                        <div class="rounded-2xl border" id="result-message"></div>
+                    </div>
+
+                    <!-- Strategic Action Control Block -->
+                    <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                        <button id="btn-import" class="btn-primary flex-1 text-white text-sm font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
+                            Start Import Process
+                        </button>
+                        <button id="btn-clear" class="btn-secondary sm:w-1/3 text-sm font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2">
+                            Reset Storage
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- System Footnote -->
+        <!-- <div class="text-center text-[10px] font-mono text-white/30 tracking-wider mt-6">
+            Elite Draw Hardware-Engine Component Architecture v2.0
+        </div> -->
+    </div>
+    <script src="assets/db-config.js"></script>
+    <script>
+
+        function generateRandomLuckyCode(usedCodes) {
+            let code;
+            do {
+                code = Math.floor(1000 + Math.random() * 9000).toString();
+            } while (usedCodes.has(code));
+            usedCodes.add(code);
+            return code;
+        }
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function parseCSVLine(line, delimiter) {
+            const result = [];
+            let inQuote = false;
+            let currentField = '';
+            
+            for (let i = 0; i < line.length; i++) {
+                const char = line[i];
+                
+                if (char === '"') {
+                    inQuote = !inQuote;
+                } else if (char === delimiter && !inQuote) {
+                    result.push(currentField);
+                    currentField = '';
+                } else {
+                    currentField += char;
+                }
+            }
+            result.push(currentField);
+            
+            return result.map(field => field.replace(/^"|"$/g, '').trim());
+        }
+
+        async function initDatabase() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(true);
+                
+                request.onupgradeneeded = function(event) {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains("attendances")) {
+                        db.createObjectStore("attendances", { keyPath: "id" });
+                    }
+                    if (!db.objectStoreNames.contains("draw_stages")) {
+                        db.createObjectStore("draw_stages", { keyPath: "id" });
+                    }
+                    if (!db.objectStoreNames.contains("winners")) {
+                        db.createObjectStore("winners", { keyPath: "id", autoIncrement: true });
+                    }
+                };
+            });
+        }
+
+        async function clearAllData() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onsuccess = function(event) {
+                    const db = event.target.result;
+                    const tx = db.transaction(["attendances", "winners"], "readwrite");
+                    tx.objectStore("attendances").clear();
+                    tx.objectStore("winners").clear();
+                    
+                    tx.oncomplete = () => { db.close(); resolve(); };
+                    tx.onerror = () => reject(tx.error);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        async function importToIndexedDB(records, onProgress) {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onsuccess = function(event) {
+                    const db = event.target.result;
+                    const transaction = db.transaction(["attendances"], "readwrite");
+                    const store = transaction.objectStore("attendances");
+                    
+                    let imported = 0;
+                    let errors = 0;
+                    
+                    records.forEach((record) => {
+                        const addRequest = store.add(record);
+                        addRequest.onsuccess = () => {
+                            imported++;
+                            if (onProgress) onProgress(imported + errors, records.length);
+                        };
+                        addRequest.onerror = (err) => {
+                            console.error("Record injection dropped:", err.target.error);
+                            errors++;
+                            if (onProgress) onProgress(imported + errors, records.length);
+                        };
+                    });
+                    
+                    transaction.oncomplete = () => { db.close(); resolve({ imported, errors }); };
+                    transaction.onerror = () => reject(transaction.error);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        $(document).ready(async function() {
+            try {
+                await initDatabase();
+            } catch (err) {
+                console.error("Database stack initialization broken:", err);
+                showMsgBox("Critical database link failure.");
+                return;
+            }
+            
+            let selectedFile = null;
+
+            $('#dropzone').on('click', function(e) {
+                e.stopPropagation();
+                $('#csv-file').click();
+            });
+
+            $('#csv-file').on('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    processFileObject(e.target.files[0]);
+                }
+            });
+
+            $('#dropzone').on('dragover', function(e) {
+                e.preventDefault(); $(this).addClass('drag-over');
+            }).on('dragleave drop', function(e) {
+                e.preventDefault(); $(this).removeClass('drag-over');
+            });
+            
+            $('#dropzone').on('drop', function(e) {
+                const files = e.originalEvent.dataTransfer.files;
+                if (files[0] && files[0].name.endsWith('.csv')) {
+                    processFileObject(files[0]);
+                    $('#csv-file')[0].files = files;
+                } else {
+                    showMsgBox('Invalid configuration format.', 'Drop standard .csv files only.');
+                }
+            });
+
+            function processFileObject(file) {
+                selectedFile = file;
+                const sizeKb = (selectedFile.size / 1024).toFixed(1);
+                $('#file-name').text(selectedFile.name);
+                $('#file-size').text(`${sizeKb} KB`);
+                $('#file-info').removeClass('hidden');
+                
+                $('#dropzone-content').html(`
+                    <p class="text-sm font-semibold text-emerald-600">File attached and staging successfully</p>
+                    <p class="text-xs text-stone-400">${selectedFile.name} (${sizeKb} KB)</p>
+                `);
+            }
+
+            $('#btn-import').click(async function() {
+                if (!selectedFile) {
+                    showMsgBox('Target acquisition required.', 'Select CSV packet file first.');
+                    return;
+                }
+                
+                $('#progress-section').removeClass('hidden');
+                $('#result-section').addClass('hidden');
+                $('#btn-import').prop('disabled', true).text('Processing Package...');
+                $('#progress-bar').css('width', '20%');
+                $('#progress-status-text').text('Reading file buffer...');
+                
+                const reader = new FileReader();
+                reader.readAsText(selectedFile);
+                
+                 reader.onload = async function(e) {
+                    try {
+
+                        /* const lines = e.target.result.split(/\r?\n/);
+                        if (lines.length <= 1) throw new Error('Empty dataset transaction context rejected.');
+
+                        const delimiter = lines[0].includes(';') ? ';' : ',';
+                        const headers = lines[0].split(delimiter).map(h => h.replace(/['"]+/g, '').trim().toLowerCase());
+                        
+                        const idxId = headers.indexOf('id');
+                        const idxFullName = headers.indexOf('full name');
+                        const idxName = headers.indexOf('name');
+                        const idxEmail = headers.indexOf('email');
+                        const idxPhone = headers.indexOf('phone');
+                        const idxCompany = headers.indexOf('company');
+                        const idxLuckyCode = headers.indexOf('lucky number'); 
+
+                        if (idxId === -1) throw new Error('Primary structure missing: CSV header must contain explicit "ID" column.');
+                        if (idxLuckyCode === -1) throw new Error('CSV must contain "Lucky Number" column for lucky codes.');
+
+                        const records = [];
+                        const usedLuckyCodes = new Set();
+                        const usedOriginalIds = new Set();
+                        
+                        $('#progress-bar').css('width', '50%');
+                        $('#progress-status-text').text('Mapping allocation layout...');
+
+                        for (let i = 1; i < lines.length; i++) {
+                            if (!lines[i] || !lines[i].trim()) continue;
+                            const columns = lines[i].split(delimiter);
+                            if (columns.length <= idxId) continue;
+                            
+                            const rawId = columns[idxId].replace(/['"]+/g, '').trim();
+                            if (!rawId) continue;
+                            
+                            if (usedOriginalIds.has(rawId)) continue;
+                            usedOriginalIds.add(rawId);
+                            
+                            let luckyCode = '';
+                            if (idxLuckyCode !== -1 && columns[idxLuckyCode]) {
+                                luckyCode = columns[idxLuckyCode].replace(/['"]+/g, '').trim();
+                            }
+                            
+                            if (!luckyCode || !/^\d{4}$/.test(luckyCode)) {
+                                console.warn(`Invalid lucky code for ${rawId}: "${luckyCode}", skipping...`);
+                                continue;
+                            }
+                            
+                            if (usedLuckyCodes.has(luckyCode)) {
+                                console.warn(`Duplicate lucky code ${luckyCode} for ${rawId}, skipping...`);
+                                continue;
+                            }
+                            usedLuckyCodes.add(luckyCode);
+                            
+                            let namaValue = '';
+                            if (idxFullName !== -1 && columns[idxFullName]) {
+                                namaValue = columns[idxFullName].replace(/['"]+/g, '').trim();
+                            } else if (idxName !== -1 && columns[idxName]) {
+                                namaValue = columns[idxName].replace(/['"]+/g, '').trim();
+                            } else {
+                                namaValue = "Attendee " + rawId;
+                            }
+                            
+                            const nameClean = idxName !== -1 && columns[idxName] ? columns[idxName].replace(/['"]+/g, '').trim() : '';
+                            const emailClean = idxEmail !== -1 && columns[idxEmail] ? columns[idxEmail].replace(/['"]+/g, '').trim() : '';
+                            const phoneClean = idxPhone !== -1 && columns[idxPhone] ? columns[idxPhone].replace(/['"]+/g, '').trim() : '';
+                            const companyClean = idxCompany !== -1 && columns[idxCompany] ? columns[idxCompany].replace(/['"]+/g, '').trim() : '-';
+                            
+                            records.push({
+                                id: rawId,
+                                lucky_code: luckyCode,  
+                                nama: namaValue,
+                                name: nameClean,
+                                email: emailClean,
+                                phone: phoneClean,
+                                company: companyClean,
+                                is_winner: 0,
+                                created_at: new Date().toISOString()
+                            });
+                        } */
+
+                        
+                        let totalRows = 0;
+                        let skippedInvalidLuckyCode = 0;
+                        let skippedDuplicateLuckyCode = 0;
+                        let skippedDuplicateId = 0;
+                        let skippedEmptyId = 0;
+                        let skippedNoColumn = 0;
+                        
+                        const lines = e.target.result.split(/\r?\n/);
+                        if (lines.length <= 1) throw new Error('Empty dataset transaction context rejected.');
+
+                        const delimiter = lines[0].includes(';') ? ';' : ',';
+                        const headers = lines[0].split(delimiter).map(h => h.replace(/['"]+/g, '').trim().toLowerCase());
+
+                        console.log('CSV Headers found:', headers);
+
+                        // Mapping berdasarkan POSISI
+                        // 0: ID, 1: Full Name, 2: Name, 3: Email, 4: Phone, 5: Company, 6: Lucky Number
+                        const idxId = 0;
+                        const idxFullName = 1;
+                        const idxName = 2;
+                        const idxEmail = 3;
+                        const idxPhone = 4;
+                        const idxCompany = 5;
+                        const idxLuckyCode = 6;
+
+                        // Validasi header
+                        if (headers[idxId] !== 'id') {
+                            console.warn(`Column 0 should be "ID", but got "${headers[idxId]}"`);
+                        }
+                        if (headers[idxLuckyCode] !== 'lucky number') {
+                            console.warn(`Column 6 should be "Lucky Number", but got "${headers[idxLuckyCode]}"`);
+                        }
+
+                        const records = [];
+                        const usedLuckyCodes = new Set();
+                        const usedOriginalIds = new Set();
+
+                        for (let i = 1; i < lines.length; i++) {
+                            if (!lines[i] || !lines[i].trim()) continue;
+                            totalRows++;
+                            
+                            //const columns = lines[i].split(delimiter);
+                            const columns = parseCSVLine(lines[i], delimiter);
+                            
+                            if (columns.length <= idxLuckyCode) {
+                                console.warn(`Line ${i+1}: Not enough columns, skipping...`);
+                                skippedNoColumn++;
+                                continue;
+                            }
+                            
+                            let rawId = columns[idxId].replace(/['"]+/g, '').trim();
+                            
+                            // Jika ID kosong, generate UUID
+                            if (!rawId) {
+                                rawId = generateUUID();
+                                console.log(`Empty ID, generated new ID: ${rawId}`);
+                                skippedEmptyId++;
+                            }
+                            
+                            // Jika ID sudah pernah digunakan, generate UUID baru
+                            if (usedOriginalIds.has(rawId)) {
+                                const oldId = rawId;
+                                rawId = generateUUID();
+                                console.warn(`Duplicate ID "${oldId}" (${namaValue}), generated new ID: "${rawId}"`);
+                                skippedDuplicateId++;
+                            }
+                            usedOriginalIds.add(rawId);
+                            
+                            let luckyCode = '';
+                            if (idxLuckyCode !== -1 && columns[idxLuckyCode]) {
+                                luckyCode = columns[idxLuckyCode].replace(/['"]+/g, '').trim();
+                            }
+                            
+                            // Validasi lucky code - jika tidak valid, generate random
+                            if (!luckyCode || !/^\d{4}$/.test(luckyCode)) {
+                                console.warn(`Invalid lucky code for ${rawId}: "${luckyCode}", generating random...`);
+                                do {
+                                    luckyCode = Math.floor(1000 + Math.random() * 9000).toString();
+                                } while (usedLuckyCodes.has(luckyCode));
+                                skippedInvalidLuckyCode++;
+                            }
+                            
+                            // Jika lucky code duplikat, generate random baru
+                            if (usedLuckyCodes.has(luckyCode)) {
+                                console.warn(`Duplicate lucky code ${luckyCode} for ${rawId}, generating new...`);
+                                do {
+                                    luckyCode = Math.floor(1000 + Math.random() * 9000).toString();
+                                } while (usedLuckyCodes.has(luckyCode));
+                                skippedDuplicateLuckyCode++;
+                            }
+                            usedLuckyCodes.add(luckyCode);
+                            
+                            let namaValue = '';
+                            if (idxFullName !== -1 && columns[idxFullName]) {
+                                namaValue = columns[idxFullName].replace(/['"]+/g, '').trim();
+                            } else if (idxName !== -1 && columns[idxName]) {
+                                namaValue = columns[idxName].replace(/['"]+/g, '').trim();
+                            } else {
+                                namaValue = "Attendee " + rawId;
+                            }
+                            
+                            const nameClean = (idxName !== -1 && columns[idxName]) ? columns[idxName].replace(/['"]+/g, '').trim() : '';
+                            const emailClean = (idxEmail !== -1 && columns[idxEmail]) ? columns[idxEmail].replace(/['"]+/g, '').trim() : '';
+                            const phoneClean = (idxPhone !== -1 && columns[idxPhone]) ? columns[idxPhone].replace(/['"]+/g, '').trim() : '';
+                            const companyClean = (idxCompany !== -1 && columns[idxCompany]) ? columns[idxCompany].replace(/['"]+/g, '').trim() : '-';
+                            
+                            records.push({
+                                id: rawId,
+                                lucky_code: luckyCode,
+                                nama: namaValue,
+                                name: nameClean,
+                                email: emailClean,
+                                phone: phoneClean,
+                                company: companyClean,
+                                is_winner: 0,
+                                created_at: new Date().toISOString()
+                            });
+                        }
+
+                        if (records.length === 0) throw new Error('No valid records found!');
+
+                        $('#progress-bar').css('width', '70%');
+                        $('#progress-status-text').text(`Clearing memory table...`);
+                        await clearAllData();
+                        
+                        const result = await importToIndexedDB(records, (processed, total) => {
+                            const pct = Math.floor((processed / total) * 30);
+                            $('#progress-bar').css('width', `${70 + pct}%`);
+                            $('#progress-count').text(`${processed}/${total}`);
+                        });
+                        
+                        $('#progress-bar').css('width', '100%');
+                        $('#progress-status-text').text(`Process transaction finalized.`);
+                        
+                        $('#result-section').removeClass('hidden');
+                        $('#result-message')
+                            .removeClass('bg-red-50 text-red-800 border-red-200 bg-green-50 text-green-800 border-green-200')
+                            .addClass('bg-green-50/90 text-stone-900 border-emerald-600/20 p-5');
+                        
+                        $('#result-message').html(`
+                            <div class="space-y-3">
+                                <div class="flex items-center gap-2 text-emerald-700">
+                                    <span class="font-bold text-sm">✓ Injection Pipeline Completed Successfully</span>
+                                </div>
+                                <p class="text-xs text-stone-600 leading-relaxed">
+                                    Loaded <strong class="text-stone-900">${result.imported} entities</strong> into core system storage space. 
+                                    Lucky codes imported from CSV column. Failed packets: ${result.errors}.
+                                </p>
+                                <div class="flex gap-2 pt-2">
+                                    <a href="lucky-draw-action.html" class="btn-primary text-white text-xs font-semibold px-4 py-2 rounded-lg">Open Control Panel</a>
+                                    <a href="index.html" class="btn-secondary text-xs font-semibold px-4 py-2 rounded-lg">Home Terminal</a>
+                                </div>
+                            </div>
+                        `);
+                        
+                    } catch (err) {
+                        console.error(err);
+                        $('#result-section').removeClass('hidden');
+                        $('#result-message')
+                            .removeClass('bg-green-50 text-green-800 border-green-200')
+                            .addClass('bg-red-50 text-red-900 border-red-200/50 p-4 text-xs font-mono');
+                        $('#result-message').text(`Execution Aborted: ${err.message}`);
+                    } finally {
+                        $('#btn-import').prop('disabled', false).text('📥 Start Import Process');
+                        setTimeout(() => { $('#progress-section').addClass('hidden'); }, 4000);
+                    }
+                };
+            });
+
+            $('#btn-clear').click(async function() {
+                const userConfirmed = await showConfirmBox(
+                    'Operational Override', 
+                    'Wipe database memory structures? This action clears all attendee registries permanently.'
+                );
+
+                if (userConfirmed) {
+                    try {
+                        await clearAllData();
+                        
+                        showMsgBox('Storage sectors reset complete.', 'All attendee registries have been cleared.');
+                        
+                        selectedFile = null;
+                        $('#csv-file').val('');
+                        $('#file-info').addClass('hidden');
+                        $('#dropzone-content').html(`
+                            <div class="w-12 h-12 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center justify-center mx-auto">
+                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-stone-800">Click to browse or drop file here</p>
+                                <p class="text-xs text-stone-400 mt-1">Accepts native Microsoft Excel CSV format</p>
+                            </div>
+                        `);
+                    } catch (err) {
+                        showMsgBox('Operational failure during structural wipe.', 'An error occurred while clearing the database configuration fields.');
+                    }
+                }
+            });
+        });
+
+        function showMsgBox(title, message) {
+            $('#msgbox-title').text(title);
+            $('#msgbox-text').text(message);
+            
+            $('#desktop-msgbox').removeClass('hidden');
+            
+            setTimeout(() => {
+                $('#msgbox-card').removeClass('scale-95 opacity-0').addClass('scale-100 opacity-100');
+            }, 10);
+        }
+
+        // Fungsi untuk menutup MsgBox
+        function closeMsgBox() {
+            $('#msgbox-card').removeClass('scale-100 opacity-100').addClass('scale-95 opacity-0');
+            setTimeout(() => {
+                $('#desktop-msgbox').addClass('hidden');
+            }, 200); 
+        }
+       
+        function showConfirmBox(title, message) {
+            return new Promise((resolve) => {
+                $('#confirmbox-title').text(title);
+                $('#confirmbox-text').text(message);
+                
+                $('#desktop-confirmbox').removeClass('hidden');
+                setTimeout(() => {
+                    $('#confirmbox-card').removeClass('scale-95 opacity-0').addClass('scale-100 opacity-100');
+                }, 10);
+
+                $('#btn-confirm-cancel').off('click').on('click', function() {
+                    closeConfirmBox();
+                    resolve(false);
+                });
+
+                $('#btn-confirm-proceed').off('click').on('click', function() {
+                    closeConfirmBox();
+                    resolve(true);
+                });
+            });
+        }
+
+        function closeConfirmBox() {
+            $('#confirmbox-card').removeClass('scale-100 opacity-100').addClass('scale-95 opacity-0');
+            setTimeout(() => {
+                $('#desktop-confirmbox').addClass('hidden');
+            }, 200);
+        }
+    </script>
+
+    <div id="desktop-msgbox" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl border border-stone-200 w-full max-w-sm shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-200" id="msgbox-card">
+            
+            <div class="bg-stone-100 px-4 py-2 border-b border-stone-200 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
+                    <span class="text-[11px] font-mono font-bold tracking-wider text-stone-500 uppercase">System Notification</span>
+                </div>
+                <button type="button" onclick="closeMsgBox()" class="text-stone-400 hover:text-stone-700 text-xs font-bold focus:outline-none">&times;</button>
+            </div>
+
+            <div class="p-6 flex items-start gap-4">
+                <div class="p-2.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                    </svg>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="text-sm font-bold text-stone-900" id="msgbox-title">Execution Halt</h3>
+                    <p class="text-xs text-stone-600 leading-relaxed font-medium" id="msgbox-text">
+                        Target acquisition required: Select CSV packet file first.
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-stone-50 px-4 py-3 border-t border-stone-150 flex justify-end">
+                <button type="button" onclick="closeMsgBox()" class="bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold py-2 px-5 rounded-lg shadow-sm transition-colors focus:outline-none min-w-[4rem] text-center">
+                    OK
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <div id="desktop-confirmbox" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl border border-stone-200 w-full max-w-sm shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-200" id="confirmbox-card">
+            
+            <div class="bg-stone-100 px-4 py-2 border-b border-stone-200 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
+                    <span class="text-[11px] font-mono font-bold tracking-wider text-stone-500 uppercase">System Override Request</span>
+                </div>
+            </div>
+
+            <div class="p-6 flex items-start gap-4">
+                <div class="p-2.5 bg-red-50 border border-red-100 text-red-600 rounded-xl shrink-0">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                    </svg>
+                </div>
+                <div class="space-y-1">
+                    <h3 class="text-sm font-bold text-stone-900" id="confirmbox-title">Dangerous Action</h3>
+                    <p class="text-xs text-stone-600 leading-relaxed font-medium" id="confirmbox-text">
+                        Are you sure you want to proceed?
+                    </p>
+                </div>
+            </div>
+
+            <div class="bg-stone-50 px-4 py-3 border-t border-stone-150 flex justify-end gap-2">
+                <button type="button" id="btn-confirm-cancel" class="bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-bold py-2 px-4 rounded-lg transition-colors focus:outline-none min-w-[4.5rem]">
+                    Cancel
+                </button>
+                <button type="button" id="btn-confirm-proceed" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 px-4 rounded-lg shadow-sm transition-colors focus:outline-none min-w-[4.5rem]">
+                    Proceed
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+</body>
+</html>
