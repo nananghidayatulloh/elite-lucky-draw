@@ -6,6 +6,7 @@
     <title>Lucky Draw Action - Elite</title>
     <script src="assets/jquery.min.js"></script>
     <script src="assets/tailwind.min.js"></script>
+    <script src="assets/xlsx.full.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --tenant-primary: #2e4f11; --tenant-secondary: #ffdc73; --tenant-tertiary: #a67c00; }
@@ -22,10 +23,23 @@
         .projector-status { font-size: 11px; padding: 4px 10px; border-radius: 20px; }
         .projector-status.connected { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
         .projector-status.disconnected { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-        .stage-container {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1rem;
+        .stage-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+        
+        /* Countdown timer style */
+        .countdown-timer {
+            font-size: 2rem;
+            font-weight: bold;
+            font-family: monospace;
+            background: rgba(0,0,0,0.5);
+            border-radius: 50%;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 10px auto;
+            border: 2px solid #ffdc73;
+            color: #ffdc73;
         }
     </style>
 </head>
@@ -46,23 +60,31 @@
             </button>
         </div>
 
-        <!-- Stage Selector - Dynamic from database -->
+        <!-- Stage Selector -->
         <div class="w-full max-w-5xl mb-6 stage-container" id="stage-container">
             <div class="text-center text-white col-span-full">Loading stages...</div>
         </div>
 
         <div class="w-full max-w-5xl mb-4 flex gap-4">
             <button id="btn-draw" class="w-4/5 bg-amber-400 hover:bg-amber-300 text-stone-900 font-bold text-xl py-5 rounded-2xl shadow-xl tracking-wider transition-all transform active:scale-95 uppercase disabled:opacity-50 disabled:cursor-not-allowed">
-                START DRAW
+                START AUTO DRAW
             </button>
             <a href="index.html" class="w-1/5 bg-stone-800 hover:bg-stone-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-sm">
                 Dashboard
             </a>
+            <button id="btn-export-excel" class="w-1/5 bg-green-600 hover:bg-green-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-sm">
+                Export Winners
+            </button>
         </div>
+
+        <!-- Countdown Display -->
+        <!-- <div id="countdown-area" class="hidden mb-4">
+            <div class="countdown-timer" id="countdown-timer">3</div>
+            <p class="text-sm text-amber-300">Drawing in progress...</p>
+        </div> -->
 
         <div class="lucky-draw-action-shell w-full max-w-5xl overflow-hidden rounded-3xl text-stone-900 p-5">
             <div class="flex items-center justify-between border-b border-amber-900/10 pb-4 mb-4">
-                <!-- <h1 class="text-base font-bold text-stone-800 tracking-tight">Winner Log - Multi Stage</h1> -->
                 <span class="text-xs bg-stone-200 px-3 py-1 rounded-full font-semibold text-stone-600">Elite Gala Dinner 2026</span>
             </div>
 
@@ -74,17 +96,92 @@
                             <th class="px-4 py-3">Prize</th>
                             <th class="px-4 py-3">Winner Name</th>
                             <th class="px-4 py-3">Lucky Code</th>
-                            <!-- <th class="px-4 py-3">Company</th> -->
                             <th class="px-4 py-3">Time</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-amber-900/5 text-stone-700" id="table-winner-body">
-                        <tr><td colspan="6" class="px-4 py-12 text-center text-stone-500">Loading...</td></tr>
+                        <tr><td colspan="5" class="px-4 py-12 text-center text-stone-500">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
     </div>
+
+    <!-- Winner Confirmation Modal -->
+    <div id="winner-confirm-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-4">
+                <h3 class="text-white font-bold text-xl">Winner Verification</h3>
+            </div>
+            
+            <div class="p-6">
+                <div class="text-center mb-4">
+                    <div class="w-20 h-20 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-10 h-10 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <p class="text-xs text-amber-600 uppercase tracking-wider font-semibold">Drawn Winner</p>
+                    <p class="text-2xl font-bold text-stone-900 mt-1" id="confirm-winner-name">Loading...</p>
+                    <p class="text-lg font-mono text-amber-700 font-bold" id="confirm-winner-code">0000</p>
+                    <p class="text-sm text-stone-500 mt-1" id="confirm-winner-company">Company: -</p>
+                </div>
+                
+                <div class="bg-amber-50 rounded-xl p-3 mb-4">
+                    <p class="text-xs text-amber-800 text-center font-semibold">
+                        Is this winner present at the event?
+                    </p>
+                    <p class="text-xs text-stone-500 text-center mt-1">
+                        * If SAVE WINNER: Record saved to winners list<br>
+                        * If REDRAW: This draw will be repeated (winner not saved)
+                    </p>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button id="confirm-winner-yes" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-xl transition-all">
+                        SAVE WINNER
+                    <button id="confirm-winner-no" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all">
+                        REDRAW
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal untuk Notifikasi Export-->
+    <div id="export-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden transform transition-all">
+            <div class="bg-gradient-to-r from-green-500 to-green-600 px-6 py-4" id="export-modal-header">
+                <h3 class="text-white font-bold text-xl" id="export-modal-title">✅ Export Successful</h3>
+            </div>
+            
+            <div class="p-6">
+                <div class="text-center mb-4">
+                    <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                        <svg class="w-10 h-10 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                    </div>
+                    <p class="text-sm text-stone-600" id="export-modal-message">
+                        Successfully exported winners to Excel file.
+                    </p>
+                    <p class="text-xs text-stone-400 mt-2 font-mono break-all" id="export-modal-filename">
+                        filename.xlsx
+                    </p>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button id="export-modal-open-folder" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all">
+                        📁 Open Folder
+                    </button>
+                    <button id="export-modal-close" class="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold py-3 rounded-xl transition-all">
+                        Close
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="assets/db-config.js"></script>
     <script>
         const IS_TAURI = typeof window.__TAURI__ !== 'undefined';
@@ -93,6 +190,17 @@
         let isDrawing = false;
         let projectorReady = false;
         let heartbeatInterval = null;
+        let drawTimeout = null;
+        let countdownInterval = null;
+        
+        // Draw configuration
+        const DRAW_DURATION = 6000; // 6 detik rolling
+        const COUNTDOWN_START = 6;
+
+        // Pending winner after auto-stop
+        let pendingWinner = null;
+        let pendingStage = null;
+        let lastExportedFile = null;
 
         // ========== DATABASE FUNCTIONS ==========
         async function getDatabase() {
@@ -135,7 +243,7 @@
             container.empty();
             
             if (stages.length === 0) {
-                container.html('<div class="text-center text-white col-span-full">No stages configured. Please check database.</div>');
+                container.html('<div class="text-center text-white col-span-full">No stages configured.</div>');
                 return;
             }
             
@@ -151,7 +259,7 @@
                         </div>
                         <h3 class="font-bold text-white text-sm truncate">${stage.prize_name}</h3>
                         <p class="text-xs text-amber-200/80 mt-1">${stage.stage_name}</p>
-                        <p class="text-xs text-stone-300 mt-1">💰 $${stage.prize_price.toLocaleString()}</p>
+                        <p class="text-xs text-stone-300 mt-1">💰 RM${stage.prize_price.toLocaleString()}</p>
                         <p class="text-sm font-bold mt-2">
                             <span id="stage-${stage.id}-drawn">${stage.drawn_count || 0}</span>/<span id="stage-${stage.id}-quota">${stage.quota}</span>
                             ${remaining > 0 ? `<span class="text-xs text-green-400 ml-1">(${remaining} left)</span>` : '<span class="text-xs text-red-400 ml-1">✓ Done</span>'}
@@ -161,16 +269,17 @@
             }
         }
 
-        async function getRemainingParticipants(excludeWinnerIds = []) {
+        // Get participants with is_winner = 0 (belum pernah jadi pemenang)
+        async function getRemainingParticipants() {
             const db = await getDatabase();
             return new Promise((resolve, reject) => {
                 const tx = db.transaction(["attendances"], "readonly");
                 const store = tx.objectStore("attendances");
-                const request = store.getAll();
+                const index = store.index("is_winner");
+        
+                const request = index.getAll(0);
                 request.onsuccess = () => {
-                    let participants = request.result;
-                    participants = participants.filter(p => !excludeWinnerIds.includes(p.id));
-                    resolve(participants);
+                    resolve(request.result);
                 };
                 request.onerror = () => reject(request.error);
                 tx.oncomplete = () => db.close();
@@ -189,21 +298,20 @@
             });
         }
 
+        // Draw winner randomly from participants with is_winner = 0
         async function drawWinner(stageId) {
             const stages = await getStages();
             const currentStageData = stages.find(s => s.id === stageId);
             
             if (currentStageData.drawn_count >= currentStageData.quota) {
-                alert(`${currentStageData.prize_name} sudah selesai! ${currentStageData.quota} winner telah dipilih.`);
+                alert(`${currentStageData.prize_name} sudah selesai!`);
                 return null;
             }
 
-            const allWinners = await getAllWinners();
-            const excludedIds = allWinners.map(w => w.attendance_id);
-            const participants = await getRemainingParticipants(excludedIds);
+            const participants = await getRemainingParticipants();
             
             if (participants.length === 0) {
-                alert("No more participants available for this prize!");
+                alert("No more participants available! All attendees have been winners.");
                 return null;
             }
 
@@ -211,11 +319,31 @@
             return participants[randomIndex];
         }
 
+        // Update is_winner = 1 ONLY (no save to winners table)
+        async function updateWinnerStatus(attendanceId) {
+            const db = await getDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["attendances"], "readwrite");
+                const store = tx.objectStore("attendances");
+                const getRequest = store.get(attendanceId);
+                getRequest.onsuccess = () => {
+                    const attendance = getRequest.result;
+                    attendance.is_winner = 1;
+                    store.put(attendance);
+                    console.log(`Updated is_winner=1 for: ${attendance.nama} (${attendance.lucky_code})`);
+                    tx.oncomplete = () => { db.close(); resolve(); };
+                };
+                getRequest.onerror = () => reject(getRequest.error);
+            });
+        }
+
+        // Save winner to winners table dan update is_winner
         async function saveWinner(attendance, stageId) {
             const db = await getDatabase();
             return new Promise((resolve, reject) => {
-                const tx = db.transaction(["winners", "draw_stages"], "readwrite");
+                const tx = db.transaction(["winners", "draw_stages", "attendances"], "readwrite");
                 
+                // Simpan ke winners
                 const winnersStore = tx.objectStore("winners");
                 winnersStore.add({
                     attendance_id: attendance.id,
@@ -223,6 +351,17 @@
                     drawn_at: new Date().toISOString()
                 });
                 
+                // Update is_winner di attendances
+                const attendancesStore = tx.objectStore("attendances");
+                const getAttendance = attendancesStore.get(attendance.id);
+                getAttendance.onsuccess = () => {
+                    const att = getAttendance.result;
+                    att.is_winner = 1;
+                    attendancesStore.put(att);
+                    console.log(`Saved winner: ${att.nama} (${att.lucky_code})`);
+                };
+                
+                // Update drawn_count di draw_stages (tetap diupdate setiap draw)
                 const stagesStore = tx.objectStore("draw_stages");
                 const getStage = stagesStore.get(stageId);
                 getStage.onsuccess = () => {
@@ -233,6 +372,24 @@
                 
                 tx.oncomplete = () => { db.close(); resolve(); };
                 tx.onerror = () => reject(tx.error);
+            });
+        }
+
+        // Update drawn_count ONLY (when winner not present)
+        async function updateDrawnCount(stageId) {
+            const db = await getDatabase();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["draw_stages"], "readwrite");
+                const store = tx.objectStore("draw_stages");
+                const getStage = store.get(stageId);
+                getStage.onsuccess = () => {
+                    const stage = getStage.result;
+                    stage.drawn_count = (stage.drawn_count || 0) + 1;
+                    store.put(stage);
+                    console.log(`Updated drawn_count for stage ${stageId}: ${stage.drawn_count}/${stage.quota}`);
+                    tx.oncomplete = () => { db.close(); resolve(); };
+                };
+                getStage.onerror = () => reject(getStage.error);
             });
         }
 
@@ -260,10 +417,8 @@
                                 winnerRows.push({
                                     no: i + 1,
                                     prize_name: stage?.prize_name || 'Unknown',
-                                    prize_price: stage?.prize_price || 0,
                                     nama: attendance?.nama || 'Unknown',
                                     lucky_code: attendance?.lucky_code || '----',
-                                    company: attendance?.company || '-',
                                     drawn_at: new Date(w.drawn_at).toLocaleTimeString()
                                 });
                                 resolveAtt();
@@ -281,13 +436,12 @@
                                     <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-bold bg-amber-100 text-amber-700 rounded-md">${w.prize_name}</span></td>
                                     <td class="px-4 py-3 font-bold text-stone-900">${w.nama}</td>
                                     <td class="px-4 py-3 font-mono text-amber-700 font-bold">${w.lucky_code}</td>
-                                   <!-- <td class="px-4 py-3 text-stone-600">${w.company}</td> -->
                                     <td class="px-4 py-3 text-xs text-stone-400">${w.drawn_at}</td>
                                 </tr>
                             `);
                         });
                     } else {
-                        $('#table-winner-body').html(`<tr><td colspan="6" class="px-4 py-12 text-center text-stone-500">No winners yet. Start the draw!</td></tr>`);
+                        $('#table-winner-body').html(`<tr><td colspan="5" class="px-4 py-12 text-center text-stone-500">No winners yet. Start the draw!</td></tr>`);
                     }
                     resolve();
                 };
@@ -308,18 +462,165 @@
             $(`#stage-${stageId}`).addClass('active');
             currentStage = stage;
             
-            // Send update to projector
             await emitToProjector('stage-update', { stage: currentStage });
-            
             return true;
         }
+
+        // Countdown function
+        function startCountdown(seconds, onTick, onComplete) {
+            let current = seconds;
+            $('#countdown-timer').text(current);
+            if (countdownInterval) clearInterval(countdownInterval);
+            
+            countdownInterval = setInterval(() => {
+                current--;
+                $('#countdown-timer').text(current);
+                if (onTick) onTick(current);
+                
+                if (current <= 0) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                    if (onComplete) onComplete();
+                }
+            }, 1000);
+        }
+
+        async function startDraw() {
+            if (!currentStage) {
+                alert('Please select a prize first!');
+                return false;
+            }
+            if (currentStage.drawn_count >= currentStage.quota) {
+                alert(`🏆 ${currentStage.prize_name} is already completed!`);
+                return false;
+            }
+            if (!projectorReady) {
+                const confirmOpen = confirm('Projector screen is not open. Open it now?');
+                if (confirmOpen) {
+                    await openProjectorWindow();
+                    setTimeout(() => {
+                        if (projectorReady) startDrawContinue();
+                        else alert('Please click "Launch Projector Screen" manually.');
+                    }, 1500);
+                    return false;
+                }
+                return false;
+            }
+            return startDrawContinue();
+        }
+
+        async function startDrawContinue() {
+            isDrawing = true;
+            $('#btn-draw').prop('disabled', true).text('DRAWING...').removeClass('bg-amber-400').addClass('bg-gray-500');
+            
+            // Show countdown area
+            $('#countdown-area').removeClass('hidden');
+            
+            // Start rolling animation on projector
+            await emitToProjector('draw-start', { stage: currentStage });
+            
+            // Start countdown
+            startCountdown(COUNTDOWN_START, null, async () => {
+                // Auto stop after countdown
+                await autoStopDraw();
+            });
+        }
+
+        async function autoStopDraw() {
+            // Select winner
+            const winner = await drawWinner(currentStage.id);
+            
+            if (!winner) {
+                resetDrawButton();
+                $('#countdown-area').addClass('hidden');
+                return;
+            }
+            
+            // Update is_winner = 1 (peserta sudah pernah menjadi pemenang)
+            await updateWinnerStatus(winner.id);
+            
+            // Update drawn_count (tetap diupdate setiap draw)
+            //await updateDrawnCount(currentStage.id);
+            
+            // Send stop to projector with winner info
+            await emitToProjector('draw-stop', { winner: winner, stage: currentStage });
+            
+            // Save pending for confirmation
+            pendingWinner = winner;
+            pendingStage = currentStage;
+            
+            // Show confirmation modal
+            $('#confirm-winner-name').text(winner.nama);
+            $('#confirm-winner-code').text(winner.lucky_code);
+            $('#confirm-winner-company').text('Company: ' + (winner.company || '-'));
+            $('#winner-confirm-modal').removeClass('hidden').addClass('flex');
+            
+            // Refresh UI
+            await renderStages();
+            await updateStageDisplay();
+            
+            resetDrawButton();
+            $('#countdown-area').addClass('hidden');
+        }
+
+        // Confirm: Winner PRESENT - Save to winners table
+        $('#confirm-winner-yes').click(async function() {
+            if (!pendingWinner) return;
+            
+            $('#winner-confirm-modal').addClass('hidden').removeClass('flex');
+            
+            // Save to winners table (is_winner already updated)
+            await saveWinner(pendingWinner, pendingStage.id);
+            
+            console.log(`✅ Winner SAVED: ${pendingWinner.nama} (${pendingWinner.lucky_code})`);
+            
+            await renderWinnerTable();
+            await renderStages();
+            await updateStageDisplay();
+            
+            // Check if stage completed
+            const stages = await getStages();
+            const updatedStage = stages.find(s => s.id === pendingStage.id);
+            
+            if (updatedStage.drawn_count >= updatedStage.quota) {
+                alert(`🎉 ${updatedStage.prize_name} completed!`);
+                $(`#stage-${pendingStage.id}`).addClass('completed');
+                
+                const nextStage = stages.find(s => s.drawn_count < s.quota);
+                if (nextStage) {
+                    await selectStage(nextStage.id);
+                } else {
+                    alert('🏆 ALL PRIZES HAVE BEEN AWARDED! 🏆');
+                }
+            }
+            
+            pendingWinner = null;
+            pendingStage = null;
+        });
+
+        // Confirm: Winner NOT PRESENT - Do NOT save to winners table
+        $('#confirm-winner-no').click(async function() {
+            if (!pendingWinner) return;
+            
+            console.log(`❌ Winner NOT PRESENT: ${pendingWinner.nama} (${pendingWinner.lucky_code})`);
+            console.log(`   is_winner already = 1, but NOT saved to winners table`);
+            
+            $('#winner-confirm-modal').addClass('hidden').removeClass('flex');
+            
+            //alert(`⚠️ ${pendingWinner.nama} marked as NOT PRESENT.\nThey have been marked as winner (cannot win again) but not recorded in winners list.`);
+            
+            pendingWinner = null;
+            pendingStage = null;
+            
+            // No need to save, just continue (drawn_count already updated, is_winner already updated)
+        });
 
         async function emitToProjector(eventName, payload) {
             if (!IS_TAURI) return;
             try {
                 const { emit } = window.__TAURI__.event;
                 await emit(eventName, payload);
-                console.log(`[Tauri emit] ${eventName}`, payload);
+                console.log(`[Tauri emit] ${eventName}`);
             } catch (err) {
                 console.warn(`Failed to emit ${eventName}:`, err);
             }
@@ -378,103 +679,237 @@
             }
         }
 
-        async function startDraw() {
-            if (!currentStage) {
-                alert('Please select a prize first!');
-                return false;
-            }
-            if (currentStage.drawn_count >= currentStage.quota) {
-                alert(`🏆 ${currentStage.prize_name} is already completed!`);
-                return false;
-            }
-            if (!projectorReady) {
-                const confirmOpen = confirm('Projector screen is not open. Open it now?');
-                if (confirmOpen) {
-                    await openProjectorWindow();
-                    setTimeout(() => {
-                        if (projectorReady) startDrawContinue();
-                        else alert('Please click "Launch Projector Screen" manually, then try again.');
-                    }, 1500);
-                    return false;
-                }
-                return false;
-            }
-            return startDrawContinue();
-        }
-
-        async function startDrawContinue() {
-            isDrawing = true;
-            $('#btn-draw').text('STOP & SELECT WINNER').removeClass('bg-amber-400').addClass('bg-red-600');
-            await emitToProjector('draw-start', { stage: currentStage });
-            return true;
-        }
-
-        async function stopDraw() {
-            if (!isDrawing) return;
-            
-            const winner = await drawWinner(currentStage.id);
-            if (!winner) { resetDrawButton(); return; }
-            
-            await saveWinner(winner, currentStage.id);
-            await renderWinnerTable();
-            await renderStages();
-            await updateStageDisplay();
-            
-            await emitToProjector('draw-stop', { winner: winner, stage: currentStage });
-            
-            const stages = await getStages();
-            const updatedStage = stages.find(s => s.id === currentStage.id);
-            if (updatedStage.drawn_count >= updatedStage.quota) {
-                alert(`🎉 ${updatedStage.prize_name} completed!`);
-                $(`#stage-${currentStage.id}`).addClass('completed');
-                
-                // Auto select next available stage
-                const nextStage = stages.find(s => s.drawn_count < s.quota);
-                if (nextStage) {
-                    await selectStage(nextStage.id);
-                } else {
-                    alert('🏆 ALL PRIZES HAVE BEEN AWARDED! 🏆\nCongratulations to all winners!');
-                }
-            }
-            
-            resetDrawButton();
-        }
-
-        async function exitProjectorFullscreen() {
-            if (IS_TAURI) {
-                try {
-                    const { WebviewWindow } = window.__TAURI__.webviewWindow;
-                    let projWin = await WebviewWindow.getByLabel('projector-screen');
-                    if (projWin) {
-                        await projWin.setFullscreen(false);
-                        console.log('[Projector] Exited fullscreen mode');
-                    }
-                } catch (err) {
-                    console.error('Failed to exit fullscreen:', err);
-                }
-            }
-        }
-
-        async function closeProjectorWindow() {
-            if (IS_TAURI) {
-                try {
-                    const { WebviewWindow } = window.__TAURI__.webviewWindow;
-                    let projWin = await WebviewWindow.getByLabel('projector-screen');
-                    if (projWin) {
-                        await projWin.close();
-                        projectorReady = false;
-                        updateProjectorStatus(false);
-                        console.log('[Projector] Window closed');
-                    }
-                } catch (err) {
-                    console.error('Failed to close projector:', err);
-                }
-            }
-        }
-
         function resetDrawButton() {
             isDrawing = false;
-            $('#btn-draw').text('START DRAW').removeClass('bg-red-600').addClass('bg-amber-400');
+            $('#btn-draw').prop('disabled', false).text('START AUTO DRAW').removeClass('bg-gray-500').addClass('bg-amber-400');
+        }
+
+        async function openFileExplorer(filePath) {
+            if (IS_TAURI) {
+                try {
+                    const { open } = window.__TAURI__.shell;
+                    // Buka folder yang berisi file
+                    const folderPath = filePath.substring(0, filePath.lastIndexOf('\\'));
+                    await open(folderPath);
+                    return true;
+                } catch (err) {
+                    console.error('Failed to open folder:', err);
+                    return false;
+                }
+            } else {
+                // Browser fallback
+                alert(`File saved: ${filePath}`);
+                return false;
+            }
+        }
+
+        // Fungsi untuk mendapatkan path download
+        async function getDownloadPath() {
+            if (IS_TAURI) {
+                try {
+                    const { path } = window.__TAURI__;
+                    const downloadDir = await path.downloadDir();
+                    return downloadDir;
+                } catch (err) {
+                    console.error('Failed to get download path:', err);
+                    return null;
+                }
+            }
+            return null;
+        }
+
+        // ========== EXPORT EXCEL FUNCTION ==========
+        
+        async function exportToExcel() {
+            try {
+                // Tampilkan loading indicator
+                const exportBtn = $('#btn-export-excel');
+                const originalText = exportBtn.html();
+                exportBtn.html('<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div>').prop('disabled', true);
+                
+                // Ambil data winners dari database
+                const db = await getDatabase();
+                const stages = await getStages();
+                
+                const winners = await new Promise((resolve, reject) => {
+                    const tx = db.transaction(["winners", "attendances"], "readonly");
+                    const winnersStore = tx.objectStore("winners");
+                    const attendancesStore = tx.objectStore("attendances");
+                    
+                    const winnersRequest = winnersStore.getAll();
+                    winnersRequest.onsuccess = async () => {
+                        const winnersData = winnersRequest.result;
+                        const winnerRows = [];
+                        
+                        for (let i = 0; i < winnersData.length; i++) {
+                            const w = winnersData[i];
+                            const attendanceReq = attendancesStore.get(w.attendance_id);
+                            await new Promise((resolveAtt) => {
+                                attendanceReq.onsuccess = () => {
+                                    const attendance = attendanceReq.result;
+                                    const stage = stages.find(s => s.id === w.stage_id);
+                                    winnerRows.push({
+                                        no: i + 1,
+                                        prize_name: stage?.prize_name || 'Unknown',
+                                        prize_price: stage?.prize_price || 0,
+                                        winner_name: attendance?.nama || 'Unknown',
+                                        lucky_code: attendance?.lucky_code || '----',
+                                        company: attendance?.company || '-',
+                                        phone: attendance?.phone || '-',
+                                        email: attendance?.email || '-',
+                                        drawn_at: new Date(w.drawn_at).toLocaleString()
+                                    });
+                                    resolveAtt();
+                                };
+                                attendanceReq.onerror = resolveAtt;
+                            });
+                        }
+                        resolve(winnerRows);
+                    };
+                    winnersRequest.onerror = () => reject(winnersRequest.error);
+                    tx.oncomplete = () => db.close();
+                });
+                
+                if (winners.length === 0) {
+                    showCustomModal('No Data', 'No winners to export yet! Please start the draw first.', 'warning');
+                    exportBtn.html(originalText).prop('disabled', false);
+                    return;
+                }
+                
+                // Prepare data for Excel
+                const excelData = [
+                    ['No', 'Prize Name', 'Prize Price (RM)', 'Winner Name', 'Lucky Code', 'Company', 'Phone', 'Email', 'Date & Time']
+                ];
+                
+                winners.forEach(winner => {
+                    excelData.push([
+                        winner.no,
+                        winner.prize_name,
+                        winner.prize_price,
+                        winner.winner_name,
+                        winner.lucky_code,
+                        winner.company,
+                        winner.phone,
+                        winner.email,
+                        winner.drawn_at
+                    ]);
+                });
+                
+                // Create worksheet
+                const ws = XLSX.utils.aoa_to_sheet(excelData);
+                
+                // Set column widths
+                ws['!cols'] = [
+                    { wch: 5 },   // No
+                    { wch: 30 },  // Prize Name
+                    { wch: 18 },  // Prize Price
+                    { wch: 25 },  // Winner Name
+                    { wch: 12 },  // Lucky Code
+                    { wch: 30 },  // Company
+                    { wch: 15 },  // Phone
+                    { wch: 30 },  // Email
+                    { wch: 20 }   // Date & Time
+                ];
+                
+                // Create workbook and save
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Winners List');
+                
+                // Generate filename with current date
+                const now = new Date();
+                const filename = `Elite_Lucky_Draw_Winners_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.xlsx`;
+                
+                // Save file
+                XLSX.writeFile(wb, filename);
+                
+                console.log(`Exported ${winners.length} winners to ${filename}`);
+                
+                // Reset button
+                exportBtn.html(originalText).prop('disabled', false);
+                
+                // Tampilkan custom modal dengan pilihan
+                showExportSuccessModal(winners.length, filename);
+                
+            } catch (err) {
+                console.error('Export failed:', err);
+                showCustomModal('Export Failed', 'Failed to export data: ' + err.message, 'error');
+                
+                // Reset button
+                $('#btn-export-excel').html('<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Export Winner List').prop('disabled', false);
+            }
+        }
+
+        function showCustomModal(title, message, type = 'info') {
+            if ($('#export-modal').length === 0) {
+                console.warn('Modal element not found, using alert instead');
+                alert(`${title}: ${message}`);
+                return;
+            }
+            
+            if (type === 'error') {
+                $('#export-modal-header').removeClass('from-green-500 to-green-600 from-amber-500 to-amber-600').addClass('from-red-500 to-red-600');
+                $('#export-modal-title').text('❌ ' + title);
+            } else if (type === 'warning') {
+                $('#export-modal-header').removeClass('from-green-500 to-green-600 from-red-500 to-red-600').addClass('from-amber-500 to-amber-600');
+                $('#export-modal-title').text('⚠️ ' + title);
+            } else {
+                $('#export-modal-header').removeClass('from-red-500 to-red-600 from-amber-500 to-amber-600').addClass('from-green-500 to-green-600');
+                $('#export-modal-title').text('✅ ' + title);
+            }
+            
+            $('#export-modal-message').text(message);
+            $('#export-modal-filename').text('');
+            $('#export-modal').removeClass('hidden').addClass('flex');
+        }
+
+        function showExportSuccessModal(count, filename) {
+            lastExportedFile = filename;
+            
+            $('#export-modal-title').text('Export Successful');
+            $('#export-modal-message').html(`Successfully exported ${count} winner${count !== 1 ? 's' : ''} to Excel file.<br><br><span class="text-xs text-stone-500 break-all">File: ${filename}</span><br><span class="text-xs text-stone-500">Location: Downloads folder</span>`);
+            $('#export-modal-filename').text('');
+            $('#export-modal-header').removeClass('from-red-500 to-red-600 from-amber-500 to-amber-600').addClass('from-green-500 to-green-600');
+            $('#export-modal').removeClass('hidden').addClass('flex');
+            $('#export-modal-open-folder').hide();
+        }
+
+       
+        // Open folder 
+        async function openExportedFolder() {
+            if (!lastExportedFile) {
+                showCustomModal('No File', 'No file to open. Please export first.', 'warning');
+                return;
+            }
+            
+            if (IS_TAURI) {
+                try {
+                    const { open } = window.__TAURI__.shell;
+                    const { path } = window.__TAURI__.path;
+                    
+                    const downloadDir = await path.downloadDir();
+                    
+                    await open(downloadDir);
+                    console.log(`Opened folder: ${downloadDir}`);
+                    
+                } catch (err) {
+                    console.error('Failed to open folder:', err);
+                    
+                    try {
+                        const { Command } = window.__TAURI__.shell;
+                        if (navigator.platform === 'Win32') {
+                            await Command.create('explorer', [downloadDir]).execute();
+                        } else if (navigator.platform === 'MacIntel') {
+                            await Command.create('open', [downloadDir]).execute();
+                        } else {
+                            await Command.create('xdg-open', [downloadDir]).execute();
+                        }
+                    } catch (fallbackErr) {
+                        showCustomModal('Open Folder Failed', 'Cannot open folder automatically.\nFile saved in Downloads folder.', 'error');
+                    }
+                }
+            } else {
+                showCustomModal('Download Complete', `File saved as: ${lastExportedFile}\n\nCheck your Downloads folder.`, 'info');
+            }
         }
 
         // ========== INIT ==========
@@ -485,7 +920,6 @@
                 
                 const stages = await getStages();
                 if (stages.length > 0) {
-                    // Find first incomplete stage
                     const firstAvailable = stages.find(s => s.drawn_count < s.quota);
                     if (firstAvailable) {
                         await selectStage(firstAvailable.id);
@@ -495,13 +929,12 @@
                 }
             } catch (err) {
                 console.error("Failed to initialize:", err);
-                $('#stage-container').html('<div class="text-center text-red-400 col-span-full">Error loading stages. Please check database.</div>');
+                $('#stage-container').html('<div class="text-center text-red-400 col-span-full">Error loading stages.</div>');
             }
             
-            // Event handlers
             $(document).on('click', '.stage-card', async function() {
                 if (isDrawing) {
-                    alert('Please stop current draw first!');
+                    alert('Please wait for current draw to complete!');
                     return;
                 }
                 const stageId = parseInt($(this).data('stage-id'));
@@ -510,16 +943,36 @@
             
             $('#btn-draw').click(async function() {
                 if (isDrawing) {
-                    await stopDraw();
-                } else {
-                    await startDraw();
+                    alert('Draw already in progress!');
+                    return;
                 }
+                await startDraw();
             });
             
             $('#btn-launch-projector').click(async function() {
                 await openProjectorWindow();
             });
+
+            $('#btn-export-excel').click(function() {
+                exportToExcel();
+            });
+
+            $('#export-modal-open-folder').click(function() {
+                openExportedFolder();
+                $('#export-modal').addClass('hidden').removeClass('flex');
+            });
+
+            $('#export-modal-close').click(function() {
+                $('#export-modal').addClass('hidden').removeClass('flex');
+            });
+
+            $('#export-modal').click(function(e) {
+                if (e.target === this) {
+                    $(this).addClass('hidden').removeClass('flex');
+                }
+            });
         });
+        
     </script>
 </body>
 </html>
