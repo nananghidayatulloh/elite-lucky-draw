@@ -183,15 +183,16 @@
         }
 
         
+        // Di index.html, update verifyDatabase
         function verifyDatabase() {
             return new Promise((resolve) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                const request = indexedDB.open(window.DB_NAME, window.DB_VERSION); 
                 request.onsuccess = (event) => {
                     const db = event.target.result;
                     const isValid = db.objectStoreNames.contains("attendances") && 
                                     db.objectStoreNames.contains("draw_stages") && 
-                                    db.objectStoreNames.contains("winners");
-                    db.close();
+                                    db.objectStoreNames.contains("winners") &&
+                                    db.objectStoreNames.contains("prizes"); 
                     resolve(isValid);
                 };
                 request.onerror = () => resolve(false);

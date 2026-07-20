@@ -69,9 +69,6 @@
             <button id="btn-draw" class="w-4/5 bg-amber-400 hover:bg-amber-300 text-stone-900 font-bold text-xl py-5 rounded-2xl shadow-xl tracking-wider transition-all transform active:scale-95 uppercase disabled:opacity-50 disabled:cursor-not-allowed">
                 START AUTO DRAW
             </button>
-            <button id="btn-bulk-draw" class="w-1/5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-sm">
-                START BULK DRAW
-            </button>
             <a href="index.html" class="w-1/5 bg-stone-800 hover:bg-stone-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-sm">
                 Dashboard
             </a>
@@ -146,42 +143,6 @@
                     <button id="confirm-winner-no" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-3 rounded-xl transition-all">
                         REDRAW
                     </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Bulk Draw Modal -->
-    <div id="bulk-draw-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden">
-            <div class="bg-gradient-to-r from-purple-500 to-purple-600 px-6 py-4">
-                <h3 class="text-white font-bold text-xl">Bulk Draw by Table</h3>
-            </div>
-            <div class="p-6">
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-semibold text-stone-700">Select Prize:</label>
-                        <select id="bulk-prize-select" class="w-full border rounded-xl px-4 py-2 text-stone-900">
-                            <option value="">-- Select Prize --</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-stone-700">Table Number:</label>
-                        <input type="text" id="bulk-table-number" class="w-full border rounded-xl px-4 py-2 text-stone-900" placeholder="Enter table number (e.g. 1, 2, 3)...">
-                        <p class="text-xs text-stone-400 mt-1">Draw winners from a specific table</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-stone-700">Number of Winners:</label>
-                        <input type="number" id="bulk-count" class="w-full border rounded-xl px-4 py-2 text-stone-900" value="1" min="1">
-                    </div>
-                    <div class="flex gap-3 pt-4">
-                        <button id="bulk-execute" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition-all">
-                            🎲 Execute Bulk Draw
-                        </button>
-                        <button id="bulk-close" class="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold py-3 rounded-xl transition-all">
-                            Cancel
-                        </button>
-                    </div>
                 </div>
             </div>
         </div>
@@ -315,40 +276,10 @@
                 const tx = db.transaction(["attendances"], "readonly");
                 const store = tx.objectStore("attendances");
                 const index = store.index("is_winner");
-                
+        
                 const request = index.getAll(0);
                 request.onsuccess = () => {
                     resolve(request.result);
-                };
-                request.onerror = () => reject(request.error);
-                tx.oncomplete = () => db.close();
-            });
-        }
-
-        // Fungsi untuk mendapatkan peserta berdasarkan table (bulk draw)
-        async function getAttendeesByTable(tableNumber) {
-            const db = await getDatabase();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(["attendances"], "readonly");
-                const store = tx.objectStore("attendances");
-                
-                // Ambil seluruh data peserta untuk pencarian fleksibel/toleran
-                const request = store.getAll();
-                request.onsuccess = () => {
-                    const allAttendees = request.result;
-                    const targetSearch = String(tableNumber).trim().toLowerCase();
-                    
-                    const filtered = allAttendees.filter(a => {
-                        if (!a.table_number) return false;
-                        const dbTable = String(a.table_number).trim().toLowerCase();
-                        
-                        return dbTable === targetSearch || 
-                            dbTable === `table ${targetSearch}` || 
-                            dbTable === `meja ${targetSearch}` ||
-                            dbTable.replace(/[^0-9]/g, '') === targetSearch; 
-                    });
-                    
-                    resolve(filtered);
                 };
                 request.onerror = () => reject(request.error);
                 tx.oncomplete = () => db.close();
@@ -463,70 +394,60 @@
         }
 
         async function renderWinnerTable() {
-        const db = await getDatabase();
-        const stages = await getStages();
-        const prizes = await getPrizes(); 
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(["winners", "attendances"], "readonly");
-            const winnersStore = tx.objectStore("winners");
-            const attendancesStore = tx.objectStore("attendances");
+            const db = await getDatabase();
+            const stages = await getStages();
             
-            const winnersRequest = winnersStore.getAll();
-            winnersRequest.onsuccess = async () => {
-                const winners = winnersRequest.result;
-                const winnerRows = [];
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["winners", "attendances"], "readonly");
+                const winnersStore = tx.objectStore("winners");
+                const attendancesStore = tx.objectStore("attendances");
                 
-                for (let i = 0; i < winners.length; i++) {
-                    const w = winners[i];
-                    const attendanceReq = attendancesStore.get(w.attendance_id);
+                const winnersRequest = winnersStore.getAll();
+                winnersRequest.onsuccess = async () => {
+                    const winners = winnersRequest.result;
+                    const winnerRows = [];
                     
-                    await new Promise((resolveAtt) => {
-                        attendanceReq.onsuccess = () => {
-                            const attendance = attendanceReq.result;
-                            
-                            // 1. Cari berdasarkan stage_id (Auto Draw)
-                            const stage = stages.find(s => String(s.id) === String(w.stage_id));
-                            
-                            // 2. Cari berdasarkan prize_id (Bulk Draw) jika stage_id tidak ada
-                            const prize = prizes.find(p => String(p.id) === String(w.prize_id));
-                            
-                            // Tentukan nama hadiah terbaik
-                            const prizeName = prize?.name || stage?.prize_name || 'Unknown Prize';
-                            
-                            winnerRows.push({
-                                no: i + 1,
-                                prize_name: prizeName,
-                                nama: attendance?.nama || 'Unknown',
-                                lucky_code: attendance?.lucky_code || '----',
-                                drawn_at: new Date(w.drawn_at).toLocaleTimeString()
-                            });
-                            resolveAtt();
-                        };
-                        attendanceReq.onerror = resolveAtt;
-                    });
-                }
-                
-                $('#table-winner-body').empty();
-                if (winnerRows.length > 0) {
-                    winnerRows.forEach(w => {
-                        $('#table-winner-body').append(`
-                            <tr class="hover:bg-amber-50/50 transition-colors">
-                                <td class="px-4 py-3 font-medium">${w.no}</td>
-                                <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-bold bg-amber-100 text-amber-700 rounded-md">${w.prize_name}</span></td>
-                                <td class="px-4 py-3 font-bold text-stone-900">${w.nama}</td>
-                                <td class="px-4 py-3 font-mono text-amber-700 font-bold">${w.lucky_code}</td>
-                                <td class="px-4 py-3 text-xs text-stone-400">${w.drawn_at}</td>
-                            </tr>
-                        `);
-                    });
-                } else {
-                    $('#table-winner-body').html(`<tr><td colspan="5" class="px-4 py-12 text-center text-stone-500">No winners yet. Start the draw!</td></tr>`);
-                }
-                resolve();
-            };
-            tx.oncomplete = () => db.close();
-        });
-    }
+                    for (let i = 0; i < winners.length; i++) {
+                        const w = winners[i];
+                        const attendanceReq = attendancesStore.get(w.attendance_id);
+                        await new Promise((resolveAtt) => {
+                            attendanceReq.onsuccess = () => {
+                                const attendance = attendanceReq.result;
+                                const stage = stages.find(s => s.id === w.stage_id);
+                                winnerRows.push({
+                                    no: i + 1,
+                                    prize_name: stage?.prize_name || 'Unknown',
+                                    nama: attendance?.nama || 'Unknown',
+                                    lucky_code: attendance?.lucky_code || '----',
+                                    drawn_at: new Date(w.drawn_at).toLocaleTimeString()
+                                });
+                                resolveAtt();
+                            };
+                            attendanceReq.onerror = resolveAtt;
+                        });
+                    }
+                    
+                    $('#table-winner-body').empty();
+                    if (winnerRows.length > 0) {
+                        winnerRows.forEach(w => {
+                            $('#table-winner-body').append(`
+                                <tr class="hover:bg-amber-50/50 transition-colors">
+                                    <td class="px-4 py-3 font-medium">${w.no}</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-bold bg-amber-100 text-amber-700 rounded-md">${w.prize_name}</span></td>
+                                    <td class="px-4 py-3 font-bold text-stone-900">${w.nama}</td>
+                                    <td class="px-4 py-3 font-mono text-amber-700 font-bold">${w.lucky_code}</td>
+                                    <td class="px-4 py-3 text-xs text-stone-400">${w.drawn_at}</td>
+                                </tr>
+                            `);
+                        });
+                    } else {
+                        $('#table-winner-body').html(`<tr><td colspan="5" class="px-4 py-12 text-center text-stone-500">No winners yet. Start the draw!</td></tr>`);
+                    }
+                    resolve();
+                };
+                tx.oncomplete = () => db.close();
+            });
+        }
 
         async function selectStage(stageId) {
             const stages = await getStages();
@@ -806,10 +727,9 @@
                 const originalText = exportBtn.html();
                 exportBtn.html('<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div>').prop('disabled', true);
                 
-                // Ambil data dari database
+                // Ambil data winners dari database
                 const db = await getDatabase();
                 const stages = await getStages();
-                const prizes = await getPrizes();
                 
                 const winners = await new Promise((resolve, reject) => {
                     const tx = db.transaction(["winners", "attendances"], "readonly");
@@ -827,25 +747,17 @@
                             await new Promise((resolveAtt) => {
                                 attendanceReq.onsuccess = () => {
                                     const attendance = attendanceReq.result;
-                                    
-                                    // Cari prize berdasarkan prize_id
-                                    const prize = prizes.find(p => p.id === w.prize_id);
-                                    
-                                    // Cari stage (untuk fallback)
                                     const stage = stages.find(s => s.id === w.stage_id);
-                                    
                                     winnerRows.push({
-                                        id: attendance?.id || '',
-                                        type: prize?.type || stage?.stage_name?.toLowerCase().replace(' ', '_') || 'unknown',
-                                        item_type: prize?.type?.replace('_prize', '') || 'product',
-                                        round: prize?.round || stage?.sequence || 1,
-                                        name: attendance?.nama || 'Unknown',
-                                        description: prize?.description || stage?.prize_name || '',
-                                        link: prize?.picture || '',
-                                        price: prize?.price || `RM ${prize?.prize_price || stage?.prize_price || 0}`,
-                                        picture: prize?.picture || '',
-                                        created_at: new Date(w.drawn_at).toLocaleString(),
-                                        updated_at: new Date().toLocaleString()
+                                        no: i + 1,
+                                        prize_name: stage?.prize_name || 'Unknown',
+                                        prize_price: stage?.prize_price || 0,
+                                        winner_name: attendance?.nama || 'Unknown',
+                                        lucky_code: attendance?.lucky_code || '----',
+                                        company: attendance?.company || '-',
+                                        phone: attendance?.phone || '-',
+                                        email: attendance?.email || '-',
+                                        drawn_at: new Date(w.drawn_at).toLocaleString()
                                     });
                                     resolveAtt();
                                 };
@@ -864,25 +776,22 @@
                     return;
                 }
                 
-                // Format Excel sesuai permintaan:
-                // ID | Type | Item Type | Round | Name | Description | Link | Price | Picture | Created At | Updated At
+                // Prepare data for Excel
                 const excelData = [
-                    ['ID', 'Type', 'Item Type', 'Round', 'Name', 'Description', 'Link', 'Price', 'Picture', 'Created At', 'Updated At']
+                    ['No', 'Prize Name', 'Prize Price (RM)', 'Winner Name', 'Lucky Code', 'Company', 'Phone', 'Email', 'Date & Time']
                 ];
                 
-                winners.forEach(w => {
+                winners.forEach(winner => {
                     excelData.push([
-                        w.id,
-                        w.type,
-                        w.item_type,
-                        w.round,
-                        w.name,
-                        w.description,
-                        w.link,
-                        w.price,
-                        w.picture,
-                        w.created_at,
-                        w.updated_at
+                        winner.no,
+                        winner.prize_name,
+                        winner.prize_price,
+                        winner.winner_name,
+                        winner.lucky_code,
+                        winner.company,
+                        winner.phone,
+                        winner.email,
+                        winner.drawn_at
                     ]);
                 });
                 
@@ -891,30 +800,16 @@
                 
                 // Set column widths
                 ws['!cols'] = [
-                    { wch: 30 }, // ID
-                    { wch: 20 }, // Type
-                    { wch: 15 }, // Item Type
-                    { wch: 10 }, // Round
-                    { wch: 30 }, // Name
-                    { wch: 35 }, // Description
-                    { wch: 40 }, // Link
-                    { wch: 15 }, // Price
-                    { wch: 40 }, // Picture
-                    { wch: 22 }, // Created At
-                    { wch: 22 }  // Updated At
+                    { wch: 5 },   // No
+                    { wch: 30 },  // Prize Name
+                    { wch: 18 },  // Prize Price
+                    { wch: 25 },  // Winner Name
+                    { wch: 12 },  // Lucky Code
+                    { wch: 30 },  // Company
+                    { wch: 15 },  // Phone
+                    { wch: 30 },  // Email
+                    { wch: 20 }   // Date & Time
                 ];
-                
-                // Style header row (bold + background)
-                const range = XLSX.utils.decode_range(ws['!ref']);
-                for (let C = range.s.c; C <= range.e.c; ++C) {
-                    const address = XLSX.utils.encode_cell({ r: 0, c: C });
-                    if (!ws[address]) continue;
-                    ws[address].s = {
-                        font: { bold: true, sz: 11 },
-                        fill: { fgColor: { rgb: "FFE4B5" } },
-                        alignment: { horizontal: "center" }
-                    };
-                }
                 
                 // Create workbook and save
                 const wb = XLSX.utils.book_new();
@@ -922,7 +817,7 @@
                 
                 // Generate filename with current date
                 const now = new Date();
-                const filename = `Elite_Winners_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.xlsx`;
+                const filename = `Elite_Lucky_Draw_Winners_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.xlsx`;
                 
                 // Save file
                 XLSX.writeFile(wb, filename);
@@ -932,7 +827,7 @@
                 // Reset button
                 exportBtn.html(originalText).prop('disabled', false);
                 
-                // Tampilkan custom modal
+                // Tampilkan custom modal dengan pilihan
                 showExportSuccessModal(winners.length, filename);
                 
             } catch (err) {
@@ -940,7 +835,7 @@
                 showCustomModal('Export Failed', 'Failed to export data: ' + err.message, 'error');
                 
                 // Reset button
-                $('#btn-export-excel').html('📊 Export Winners').prop('disabled', false);
+                $('#btn-export-excel').html('<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg> Export Winner List').prop('disabled', false);
             }
         }
 
@@ -971,13 +866,7 @@
             lastExportedFile = filename;
             
             $('#export-modal-title').text('Export Successful');
-            $('#export-modal-message').html(`
-                Successfully exported <strong>${count}</strong> winner${count !== 1 ? 's' : ''} to Excel file.<br><br>
-                <span class="text-xs text-stone-500">Format: ID, Type, Item Type, Round, Name, Description, Link, Price, Picture, Created At, Updated At</span>
-                <br><br>
-                <span class="text-xs text-stone-400 break-all">File: ${filename}</span><br>
-                <span class="text-xs text-stone-400">Location: Downloads folder</span>
-            `);
+            $('#export-modal-message').html(`Successfully exported ${count} winner${count !== 1 ? 's' : ''} to Excel file.<br><br><span class="text-xs text-stone-500 break-all">File: ${filename}</span><br><span class="text-xs text-stone-500">Location: Downloads folder</span>`);
             $('#export-modal-filename').text('');
             $('#export-modal-header').removeClass('from-red-500 to-red-600 from-amber-500 to-amber-600').addClass('from-green-500 to-green-600');
             $('#export-modal').removeClass('hidden').addClass('flex');
@@ -1082,182 +971,8 @@
                     $(this).addClass('hidden').removeClass('flex');
                 }
             });
-
-            $('#btn-bulk-draw').click(async function() {
-                await loadPrizesForBulk();
-                $('#bulk-draw-modal').removeClass('hidden').addClass('flex');
-            });
-
-            $('#bulk-close').click(function() {
-                $('#bulk-draw-modal').addClass('hidden').removeClass('flex');
-            });
-
-            $('#bulk-draw-modal').click(function(e) {
-                if (e.target === this) {
-                    $(this).addClass('hidden').removeClass('flex');
-                }
-            });
-
-            // Di lucky-draw-action.html pada $(document).ready()
-            $('#bulk-execute').click(async function() {
-                // Ambil nilai raw tanpa parseInt agar UUID / String ID tetap utuh
-                const prizeIdRaw = $('#bulk-prize-select').val(); 
-                // Coba konversi ke integer jika nilainya berupa string angka murni
-                const prizeId = !isNaN(prizeIdRaw) && prizeIdRaw.trim() !== '' ? parseInt(prizeIdRaw) : prizeIdRaw;
-                
-                const tableNumber = $('#bulk-table-number').val().trim();
-                const count = parseInt($('#bulk-count').val()) || 1;
-                
-                if (!prizeId) {
-                    alert('Please select a prize!');
-                    return;
-                }
-                if (!tableNumber) {
-                    alert('Please enter table number!');
-                    return;
-                }
-                
-                if (!confirm(`Draw ${count} winner(s) from Table ${tableNumber} for selected prize?`)) return;
-                
-                try {
-                    const result = await bulkRollByTable(prizeId, tableNumber, count);
-                    alert(`Success! ${result.winners.length} winner(s) selected from Table ${tableNumber} for "${result.prize.name}"`);
-                    $('#bulk-draw-modal').addClass('hidden').removeClass('flex');
-                    await renderWinnerTable();
-                    await renderStages();
-                } catch (err) {
-                    alert('Error: ' + err.message);
-                }
-            });
         });
         
-        // Fungsi untuk mendapatkan peserta berdasarkan table (bulk draw)
-        async function getAttendeesByTable(tableNumber) {
-            const db = await getDatabase();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(["attendances"], "readonly");
-                const store = tx.objectStore("attendances");
-                const index = store.index("table_number");
-                const request = index.getAll(tableNumber);
-                request.onsuccess = () => {
-                    resolve(request.result);
-                };
-                request.onerror = () => reject(request.error);
-                tx.oncomplete = () => db.close();
-            });
-        }
-
-        // ========== SET WINNER FOR SPECIFIC PRIZE ==========
-        async function setWinnerForPrize(prizeId, attendanceId) {
-            const db = await getDatabase();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(["prizes", "attendances", "winners"], "readwrite");
-                
-                // 1. Mark prize as drawn
-                const prizeStore = tx.objectStore("prizes");
-                const getPrize = prizeStore.get(prizeId);
-                getPrize.onsuccess = () => {
-                    const prize = getPrize.result;
-                    prize.is_drawn = 1;
-                    prizeStore.put(prize);
-                };
-                
-                // 2. Mark attendee as winner
-                const attendStore = tx.objectStore("attendances");
-                const getAttend = attendStore.get(attendanceId);
-                getAttend.onsuccess = () => {
-                    const att = getAttend.result;
-                    att.is_winner = 1;
-                    attendStore.put(att);
-                };
-                
-                // 3. Add to winners
-                const winnersStore = tx.objectStore("winners");
-                winnersStore.add({
-                    attendance_id: attendanceId,
-                    prize_id: prizeId,
-                    drawn_at: new Date().toISOString()
-                });
-                
-                tx.oncomplete = () => { db.close(); resolve(); };
-                tx.onerror = () => reject(tx.error);
-            });
-        }
-
-        // ========== BULK ROLL BY TABLE ==========
-        async function bulkRollByTable(prizeId, tableNumber, count) {
-            const db = await getDatabase();
-            
-            const prize = await new Promise((resolve, reject) => {
-                const tx = db.transaction(["prizes"], "readonly");
-                const store = tx.objectStore("prizes");
-                
-                // Coba get langsung
-                const request = store.get(prizeId);
-                request.onsuccess = () => {
-                    if (request.result) {
-                        resolve(request.result);
-                    } else {
-                        const getAllReq = store.getAll();
-                        getAllReq.onsuccess = () => {
-                            const found = getAllReq.result.find(p => String(p.id) === String(prizeId));
-                            resolve(found || null);
-                        };
-                        getAllReq.onerror = () => reject(getAllReq.error);
-                    }
-                };
-                request.onerror = () => reject(request.error);
-                tx.oncomplete = () => db.close();
-            });
-            
-            if (!prize) throw new Error('Prize not found!');
-            if (prize.is_drawn) throw new Error('Prize already drawn!');
-            
-            const attendees = await getAttendeesByTable(tableNumber);
-            const available = attendees.filter(a => a.is_winner === 0);
-            
-            if (available.length < count) {
-                throw new Error(`Only ${available.length} available attendees from table "${tableNumber}"`);
-            }
-            
-            const shuffled = available.sort(() => Math.random() - 0.5);
-            const winners = shuffled.slice(0, count);
-            
-            const results = [];
-            for (const winner of winners) {
-                await setWinnerForPrize(prize.id, winner.id);
-                results.push(winner);
-            }
-            
-            return { prize, winners: results };
-        }
-
-        async function getPrizes() {
-            const db = await getDatabase();
-            return new Promise((resolve, reject) => {
-                if (!db.objectStoreNames.contains("prizes")) {
-                    reject(new Error('Store "prizes" not found! Please upgrade database.'));
-                    return;
-                }
-                
-                const tx = db.transaction(["prizes"], "readonly");
-                const store = tx.objectStore("prizes");
-                const request = store.getAll();
-                request.onsuccess = () => resolve(request.result);
-                request.onerror = () => reject(request.error);
-                tx.oncomplete = () => db.close();
-            });
-        }
-
-        async function loadPrizesForBulk() {
-            const prizes = await getPrizes();
-            const select = $('#bulk-prize-select');
-            select.empty();
-            select.append(`<option value="">-- Select Prize --</option>`);
-            prizes.filter(p => !p.is_drawn).forEach(p => {
-                select.append(`<option value="${p.id}">${p.name} (${p.type}) - Round ${p.round}</option>`);
-            });
-        }
     </script>
 </body>
 </html>

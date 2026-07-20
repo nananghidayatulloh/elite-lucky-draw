@@ -79,3 +79,20 @@ npm run tauri build -- --target x86_64-apple-darwin
 npm run tauri build -- --target aarch64-apple-darwin
 Output: src-tauri/target/release/bundle/macos/elite-lucky-draw.appLinuxBashnpm run tauri build -- --target x86_64-unknown-linux-gnu
 Output: .deb and .AppImage files in src-tauri/target/release/bundle/🐛 TroubleshootingDatabase Version ErrorSymptoms: "Storage Error: Corrupted Schema"Fix: Open DevTools (Ctrl+Shift+I) ➔ Go to Application ➔ IndexedDB ➔ Delete EliteLuckyDrawDB ➔ Refresh the application.Popup BlockerSymptoms: Popup windows don't open.Fix: Allow popups for the application or click the launch button manually (not auto-open).CSV Import IssuesEnsure CSV is UTF-8 encoded.Use comma (,) as the delimiter.Verify column names match exactly: ID, Full Name, Lucky Number.🛠️ Development CommandsCommandDescriptionnpm run tauri devRun in development modenpm run tauri buildBuild production appnpm run tauri iconGenerate app iconscargo cleanClean Rust build artifacts📄 LicenseMIT License - See LICENSE file for details.🤝 ContributingContributions are welcome! Please submit a Pull Request.📧 SupportFor issues or questions, please open an issue on GitHub.
+
+# Build exe
+  npm run tauri build
+
+# Output
+Built application at: src-tauri\target\release\elite-lucky-draw.exe
+        Info Patching src-tauri\target\release\elite-lucky-draw.exe with bundle type information: msi
+        Info Target: x64
+     Running candle for "src-tauri\\target\\release\\wix\\x64\\main.wxs"
+     Running light to produce src-tauri\target\release\bundle\msi\elite-lucky-draw_0.1.3_x64_en-US.msi
+        Info Patching src-tauri\target\release\elite-lucky-draw.exe with bundle type information: nsis
+        Info Target: x64
+     Running makensis to produce src-tauri\target\release\bundle\nsis\elite-lucky-draw_0.1.3_x64-setup.exe
+    Finished 2 bundles at:
+        src-tauri\target\release\bundle\msi\elite-lucky-draw_0.1.3_x64_en-US.msi
+        src-tauri\target\release\bundle\nsis\elite-lucky-draw_0.1.3_x64-setup.exe
+  

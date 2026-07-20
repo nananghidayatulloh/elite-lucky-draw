@@ -1,6 +1,6 @@
 // assets/db-config.js
 const DB_NAME = "EliteLuckyDrawDB";
-const CURRENT_VERSION = 11; // Update versi di sini jika perlu reset database
+const CURRENT_VERSION = 18;
 
 // Data default stages
 const DEFAULT_STAGES = [
@@ -11,7 +11,7 @@ const DEFAULT_STAGES = [
     { id: 5, stage_name: "Legacy Gala Dinner 2026", prize_name: "Roborock Q10 Vacuum", prize_price: 1799, quota: 250, sequence: 5, drawn_count: 0 }
 ];
 
-// Fungsi untuk cek apakah database sudah ada
+// ========== FUNGSI UNTUK CEK DATABASE ==========
 async function isDatabaseExists() {
     return new Promise((resolve) => {
         const request = indexedDB.open(DB_NAME);
@@ -19,7 +19,9 @@ async function isDatabaseExists() {
             const db = e.target.result;
             const exists = db.objectStoreNames.contains("attendances") || 
                            db.objectStoreNames.contains("draw_stages") || 
-                           db.objectStoreNames.contains("winners");
+                           db.objectStoreNames.contains("winners") ||
+                           db.objectStoreNames.contains("prizes") ||
+                           db.objectStoreNames.contains("bulk_draws");
             db.close();
             resolve(exists);
         };
@@ -27,7 +29,6 @@ async function isDatabaseExists() {
     });
 }
 
-// Fungsi untuk mendapatkan versi database saat ini
 async function getCurrentDatabaseVersion() {
     return new Promise((resolve) => {
         const request = indexedDB.open(DB_NAME);
@@ -40,26 +41,10 @@ async function getCurrentDatabaseVersion() {
     });
 }
 
-// Fungsi utama inisialisasi database
+// ========== INISIALISASI DATABASE ==========
 async function initDatabase() {
-    const dbExists = await isDatabaseExists();
-    const currentVersion = await getCurrentDatabaseVersion();
-    
-    console.log(`[DB] Exists: ${dbExists}, Current Version: ${currentVersion}, Target: ${CURRENT_VERSION}`);
-    
-    // Tentukan versi yang akan digunakan
-    let targetVersion = CURRENT_VERSION;
-    
-    if (dbExists && currentVersion >= CURRENT_VERSION) {
-        targetVersion = currentVersion;
-        console.log(`[DB] Using existing database version ${targetVersion}`);
-    } else {
-        console.log(`[DB] Creating/Upgrading database to version ${CURRENT_VERSION}`);
-        targetVersion = CURRENT_VERSION;
-    }
-    
     return new Promise((resolve, reject) => {
-        const request = indexedDB.open(DB_NAME, targetVersion);
+        const request = indexedDB.open(DB_NAME, CURRENT_VERSION);
         
         request.onerror = (event) => {
             console.error("[DB] Error:", event.target.error);
@@ -68,66 +53,71 @@ async function initDatabase() {
         
         request.onsuccess = (event) => {
             const db = event.target.result;
-            console.log(`[DB] Opened successfully with version ${db.version}`);
             
-            // Cek apakah perlu seed data
-            if (db.objectStoreNames.contains("draw_stages")) {
-                const tx = db.transaction(["draw_stages"], "readonly");
-                const countRequest = tx.objectStore("draw_stages").count();
-                countRequest.onsuccess = () => {
-                    if (countRequest.result === 0) {
-                        console.log("[DB] Seeding default stages...");
-                        const writeTx = db.transaction(["draw_stages"], "readwrite");
-                        const store = writeTx.objectStore("draw_stages");
-                        DEFAULT_STAGES.forEach(stage => store.add(stage));
-                        writeTx.oncomplete = () => console.log("[DB] Seeding completed");
-                    }
-                    db.close();
-                    resolve(true);
-                };
-                countRequest.onerror = () => {
-                    db.close();
-                    resolve(true);
-                };
-            } else {
+            // Cek apakah tabel critical (seperti 'prizes') benar-benar ada
+            if (!db.objectStoreNames.contains("prizes")) {
+                console.warn("[DB] Tabel 'prizes' tidak ditemukan. Memaksa reset database...");
                 db.close();
-                resolve(true);
+                // Hapus DB korup dan buat ulang secara bersih
+                const deleteReq = indexedDB.deleteDatabase(DB_NAME);
+                deleteReq.onsuccess = () => {
+                    initDatabase().then(resolve).catch(reject);
+                };
+                return;
             }
+            
+            console.log(`[DB] Opened successfully with version ${db.version}`);
+            db.close();
+            resolve(true);
         };
         
+        // Event ini dipicu jika CURRENT_VERSION dinaikkan atau DB baru pertama kali dibuat
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
-            const oldVersion = event.oldVersion;
-            console.log(`[DB] Upgrading from version ${oldVersion} to ${targetVersion}`);
+            console.log(`[DB] Upgrading schema to version ${CURRENT_VERSION}...`);
             
-            // Recreate stores for clean upgrade
+            // Re-create object stores (Clean Upgrade)
             if (db.objectStoreNames.contains("attendances")) db.deleteObjectStore("attendances");
             if (db.objectStoreNames.contains("winners")) db.deleteObjectStore("winners");
             if (db.objectStoreNames.contains("draw_stages")) db.deleteObjectStore("draw_stages");
+            if (db.objectStoreNames.contains("prizes")) db.deleteObjectStore("prizes");
+            if (db.objectStoreNames.contains("bulk_draws")) db.deleteObjectStore("bulk_draws");
             
-            // Create attendances store
+            // 1. Attendances
             const attendancesStore = db.createObjectStore("attendances", { keyPath: "id" });
             attendancesStore.createIndex("lucky_code", "lucky_code", { unique: true });
             attendancesStore.createIndex("nama", "nama", { unique: false });
             attendancesStore.createIndex("company", "company", { unique: false });
+            attendancesStore.createIndex("table_number", "table_number", { unique: false });
             attendancesStore.createIndex("is_winner", "is_winner", { unique: false });
-            console.log("  Created: attendances");
             
-            // Create winners store
+            // 2. Winners
             const winnersStore = db.createObjectStore("winners", { keyPath: "id", autoIncrement: true });
             winnersStore.createIndex("attendance_id", "attendance_id", { unique: false });
             winnersStore.createIndex("stage_id", "stage_id", { unique: false });
+            winnersStore.createIndex("prize_id", "prize_id", { unique: false });
             winnersStore.createIndex("drawn_at", "drawn_at", { unique: false });
-            console.log("  Created: winners");
             
-            // Create draw_stages store
+            // 3. Draw Stages
             const drawStagesStore = db.createObjectStore("draw_stages", { keyPath: "id" });
             DEFAULT_STAGES.forEach(stage => drawStagesStore.add(stage));
-            console.log(`  Created: draw_stages with ${DEFAULT_STAGES.length} stages`);
+            
+            // 4. Prizes (TAMBAHAN UTAMA)
+            const prizesStore = db.createObjectStore("prizes", { keyPath: "id" });
+            prizesStore.createIndex("type", "type", { unique: false });
+            prizesStore.createIndex("round", "round", { unique: false });
+            prizesStore.createIndex("is_drawn", "is_drawn", { unique: false });
+            
+            // 5. Bulk Draws
+            const bulkDrawsStore = db.createObjectStore("bulk_draws", { keyPath: "id", autoIncrement: true });
+            bulkDrawsStore.createIndex("prize_id", "prize_id", { unique: false });
+            bulkDrawsStore.createIndex("table_number", "table_number", { unique: false });
+            bulkDrawsStore.createIndex("drawn_at", "drawn_at", { unique: false });
         };
     });
 }
 
+// ========== FUNGSI DATABASE LAINNYA ==========
 async function getDatabase() {
     await initDatabase();
     return new Promise((resolve, reject) => {
@@ -173,6 +163,24 @@ async function getAllWinners() {
     });
 }
 
+async function getPrizes() {
+    const db = await getDatabase();
+    return new Promise((resolve, reject) => {
+        // Cek apakah store prizes ada
+        if (!db.objectStoreNames.contains("prizes")) {
+            reject(new Error('Store "prizes" not found! Please upgrade database.'));
+            return;
+        }
+        
+        const tx = db.transaction(["prizes"], "readonly");
+        const store = tx.objectStore("prizes");
+        const request = store.getAll();
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+        tx.oncomplete = () => db.close();
+    });
+}
+
 async function saveWinner(attendanceId, stageId) {
     const db = await getDatabase();
     return new Promise((resolve, reject) => {
@@ -203,7 +211,6 @@ async function getFirstAvailableStage() {
     return stages.find(s => s.drawn_count < s.quota) || (stages.length > 0 ? stages[0] : null);
 }
 
-// Reset database (opsional)
 async function resetDatabase() {
     return new Promise((resolve, reject) => {
         const request = indexedDB.deleteDatabase(DB_NAME);
@@ -215,7 +222,7 @@ async function resetDatabase() {
     });
 }
 
-// Export ke global
+// ========== EKSPORT KE GLOBAL ==========
 window.DB_NAME = DB_NAME;
 window.DB_VERSION = CURRENT_VERSION;
 window.DEFAULT_STAGES = DEFAULT_STAGES;
@@ -224,6 +231,7 @@ window.getDatabase = getDatabase;
 window.getStages = getStages;
 window.getAllAttendances = getAllAttendances;
 window.getAllWinners = getAllWinners;
+window.getPrizes = getPrizes;
 window.saveWinner = saveWinner;
 window.getFirstAvailableStage = getFirstAvailableStage;
 window.resetDatabase = resetDatabase;

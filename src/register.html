@@ -3,10 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Elite Lucky Draw - Import Attendance</title>
+    <title>Elite Lucky Draw - Import Data</title>
     
     <script src="assets/jquery.min.js"></script>
     <script src="assets/tailwind.min.js"></script>
+    <script src="assets/xlsx.full.min.js"></script>
     
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@700;800&display=swap" rel="stylesheet">
 
@@ -53,6 +54,14 @@
             border-color: var(--tenant-tertiary);
             background: rgba(255, 220, 115, 0.04);
         }
+        .tab-btn {
+            transition: all 0.2s ease;
+        }
+        .tab-btn.active {
+            background: rgba(255, 220, 115, 0.2);
+            border-color: #ffdc73;
+            color: #ffdc73;
+        }
     </style>
 </head>
 <body class="antialiased bg-stone-900 text-stone-900 overflow-x-hidden">
@@ -70,52 +79,89 @@
             <span class="text-xs font-mono text-white/40 tracking-wider uppercase">Elite Lucky Draw</span>
         </div>
 
+        <!-- Tabs -->
+        <div class="max-w-6xl w-full mx-auto mb-6 flex gap-2">
+            <button class="tab-btn active border border-white/20 rounded-lg px-4 py-2 text-sm text-white/80 hover:text-white transition" data-tab="attendance">
+                Import Attendance
+            </button>
+            <button class="tab-btn border border-white/20 rounded-lg px-4 py-2 text-sm text-white/80 hover:text-white transition" data-tab="prizes">
+                Import Prizes
+            </button>
+        </div>
+
         <!-- Main Workspace -->
         <div class="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start my-auto">
             
-            <!-- Left Column: Guide & Rules (4 Cols) -->
+            <!-- Left Column: Guide & Rules -->
             <div class="lg:col-span-4 space-y-4 text-white">
-                <div class="space-y-2">
-                    <span class="text-xs font-bold text-amber-400 uppercase tracking-widest block">Step 01</span>
-                    <h1 class="text-3xl font-black tracking-tight font-sans text-white uppercase">Import<br>Attendance</h1>
-                    <p class="text-stone-300 text-sm leading-relaxed">
-                        Populate your local system with raw spreadsheet data. The engine will clean, map, and bind a unique lucky number sequence to each valid entity.
-                    </p>
+                <div id="tab-guide">
+                    <div id="guide-attendance">
+                        <span class="text-xs font-bold text-amber-400 uppercase tracking-widest block">Step 01</span>
+                        <h1 class="text-3xl font-black tracking-tight font-sans text-white uppercase">Import<br>Attendance</h1>
+                        <p class="text-stone-300 text-sm leading-relaxed">
+                            Upload your Excel file with attendee data. The system will map columns and generate unique lucky codes.
+                        </p>
+                    </div>
+                    <div id="guide-prizes" class="hidden">
+                        <span class="text-xs font-bold text-amber-400 uppercase tracking-widest block">Step 02</span>
+                        <h1 class="text-3xl font-black tracking-tight font-sans text-white uppercase">Import<br>Prizes</h1>
+                        <p class="text-stone-300 text-sm leading-relaxed">
+                            Upload prize list with type, round, name, description, price, and picture URL. Supports bulk prizes.
+                        </p>
+                    </div>
                 </div>
                 
                 <div class="bg-black/20 border border-white/5 rounded-2xl p-4 space-y-3 text-xs text-stone-300 font-mono">
-                    <span class="font-bold text-amber-300 block">📋 CSV REQUIREMENT SPEC:</span>
-                    <ul class="space-y-2 list-disc list-inside text-stone-400">
-                        <li>Encapsulation: UTF-8 standard text</li>
-                        <li>Delimiter auto-detect: <code class="text-amber-200">,</code> or <code class="text-amber-200">;</code></li>
-                        <li>Required column header: <code class="text-white">ID</code></li>
-                        <li>Recommended header: <code class="text-white">Full Name</code> / <code class="text-white">Company</code></li>
+                    <span class="font-bold text-amber-300 block">📋 FILE REQUIREMENT:</span>
+                    <ul class="space-y-2 list-disc list-inside text-stone-400" id="file-requirements">
+                        <li>Format: Excel (.xlsx) or CSV (.csv)</li>
+                        <li>Header row required</li>
+                        <li>UTF-8 encoding</li>
                     </ul>
                 </div>
             </div>
 
-            <!-- Right Column: Interactive Console Area (8 Cols) -->
+            <!-- Right Column: Interactive Console Area -->
             <div class="lg:col-span-8 w-full">
                 <div class="menu-card rounded-3xl p-6 shadow-2xl space-y-6">
                     
-                    <!-- Dropzone Box -->
-                    <div id="dropzone" class="dropzone rounded-2xl p-10 text-center relative group">
-                        <div id="dropzone-content" class="space-y-3">
-                            <div class="w-12 h-12 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-stone-800">Click to browse or drop file here</p>
-                                <p class="text-xs text-stone-400 mt-1">Accepts native Microsoft Excel CSV format</p>
+                    <!-- Attendance Import Area -->
+                    <div id="attendance-import" class="import-area">
+                        <div class="dropzone rounded-2xl p-10 text-center relative group" id="dropzone-attendance">
+                            <div id="dropzone-content-attendance" class="space-y-3">
+                                <div class="w-12 h-12 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-stone-800">Click to browse or drop file here</p>
+                                    <p class="text-xs text-stone-400 mt-1">Accepts Excel (.xlsx) or CSV (.csv)</p>
+                                </div>
                             </div>
                         </div>
+                        <input type="file" id="file-attendance" accept=".csv,.xlsx" class="hidden" />
                     </div>
-                    
-                    <input type="file" id="csv-file" accept=".csv" class="hidden" />
 
-                    <!-- Reactive Selection Status Info -->
+                    <!-- Prizes Import Area -->
+                    <div id="prizes-import" class="import-area hidden">
+                        <div class="dropzone rounded-2xl p-10 text-center relative group" id="dropzone-prizes">
+                            <div id="dropzone-content-prizes" class="space-y-3">
+                                <div class="w-12 h-12 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
+                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <p class="text-sm font-semibold text-stone-800">Click to browse or drop prize file here</p>
+                                    <p class="text-xs text-stone-400 mt-1">Excel format with columns: Type, Round, Name, Description, Price, Picture</p>
+                                </div>
+                            </div>
+                        </div>
+                        <input type="file" id="file-prizes" accept=".csv,.xlsx" class="hidden" />
+                    </div>
+
+                    <!-- File Info -->
                     <div id="file-info" class="hidden p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-700 font-mono">
                         <div class="flex items-center justify-between">
                             <div class="flex items-center gap-2 truncate">
@@ -126,7 +172,7 @@
                         </div>
                     </div>
 
-                    <!-- Progress Indicator Box -->
+                    <!-- Progress -->
                     <div id="progress-section" class="hidden p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-2">
                         <div class="flex justify-between text-xs font-mono font-semibold">
                             <span class="text-stone-600 animate-pulse" id="progress-status-text">📊 Executing transaction...</span>
@@ -137,12 +183,12 @@
                         </div>
                     </div>
 
-                    <!-- Live Notice Board Output Message -->
+                    <!-- Result -->
                     <div id="result-section" class="hidden">
                         <div class="rounded-2xl border" id="result-message"></div>
                     </div>
 
-                    <!-- Strategic Action Control Block -->
+                    <!-- Actions -->
                     <div class="flex flex-col sm:flex-row gap-3 pt-2">
                         <button id="btn-import" class="btn-primary flex-1 text-white text-sm font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
                             Start Import Process
@@ -156,23 +202,48 @@
             </div>
         </div>
 
-        <!-- System Footnote -->
-        <!-- <div class="text-center text-[10px] font-mono text-white/30 tracking-wider mt-6">
-            Elite Draw Hardware-Engine Component Architecture v2.0
-        </div> -->
     </div>
+
     <script src="assets/db-config.js"></script>
     <script>
+        // ========== TAB SWITCHING ==========
+        let currentTab = 'attendance';
 
-        function generateRandomLuckyCode(usedCodes) {
-            let code;
-            do {
-                code = Math.floor(1000 + Math.random() * 9000).toString();
-            } while (usedCodes.has(code));
-            usedCodes.add(code);
-            return code;
-        }
+        $('.tab-btn').click(function() {
+            $('.tab-btn').removeClass('active');
+            $(this).addClass('active');
+            
+            const tab = $(this).data('tab');
+            currentTab = tab;
+            
+            if (tab === 'attendance') {
+                $('#attendance-import').removeClass('hidden');
+                $('#prizes-import').addClass('hidden');
+                $('#guide-attendance').removeClass('hidden');
+                $('#guide-prizes').addClass('hidden');
+                $('#file-requirements').html(`
+                    <li>Format: Excel (.xlsx) or CSV (.csv)</li>
+                    <li>Required columns: ID, Full Name, Lucky Number</li>
+                    <li>Optional: Name, Email, Phone, Company</li>
+                `);
+            } else {
+                $('#attendance-import').addClass('hidden');
+                $('#prizes-import').removeClass('hidden');
+                $('#guide-attendance').addClass('hidden');
+                $('#guide-prizes').removeClass('hidden');
+                $('#file-requirements').html(`
+                    <li>Format: Excel (.xlsx)</li>
+                    <li>Columns: ID, Type, Round, Name, Description, Price, Picture</li>
+                    <li>Type: consolation_prize / major_prize / grand_prize</li>
+                `);
+            }
+            
+            // Reset file info
+            $('#file-info').addClass('hidden');
+            $('#result-section').addClass('hidden');
+        });
 
+        // ========== FUNCTIONS ==========
         function generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                 const r = Math.random() * 16 | 0;
@@ -188,7 +259,6 @@
             
             for (let i = 0; i < line.length; i++) {
                 const char = line[i];
-                
                 if (char === '"') {
                     inQuote = !inQuote;
                 } else if (char === delimiter && !inQuote) {
@@ -199,54 +269,294 @@
                 }
             }
             result.push(currentField);
-            
             return result.map(field => field.replace(/^"|"$/g, '').trim());
-        }
-
-        async function initDatabase() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve(true);
-                
-                request.onupgradeneeded = function(event) {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains("attendances")) {
-                        db.createObjectStore("attendances", { keyPath: "id" });
-                    }
-                    if (!db.objectStoreNames.contains("draw_stages")) {
-                        db.createObjectStore("draw_stages", { keyPath: "id" });
-                    }
-                    if (!db.objectStoreNames.contains("winners")) {
-                        db.createObjectStore("winners", { keyPath: "id", autoIncrement: true });
-                    }
-                };
-            });
         }
 
         async function clearAllData() {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
                 request.onsuccess = function(event) {
                     const db = event.target.result;
-                    const tx = db.transaction(["attendances", "winners"], "readwrite");
-                    tx.objectStore("attendances").clear();
-                    tx.objectStore("winners").clear();
                     
-                    tx.oncomplete = () => { db.close(); resolve(); };
-                    tx.onerror = () => reject(tx.error);
+                    const storeNames = Array.from(db.objectStoreNames);
+                    const storesToClear = storeNames.filter(name => 
+                        ['attendances', 'winners', 'draw_stages', 'prizes', 'bulk_draws'].includes(name)
+                    );
+                    
+                    if (storesToClear.length === 0) {
+                        db.close();
+                        resolve();
+                        return;
+                    }
+                    
+                    const tx = db.transaction(storesToClear, "readwrite");
+                    storesToClear.forEach(store => {
+                        if (db.objectStoreNames.contains(store)) {
+                            tx.objectStore(store).clear();
+                        }
+                    });
+                    
+                    tx.oncomplete = () => { 
+                        db.close(); 
+                        resolve(); 
+                    };
+                    tx.onerror = () => {
+                        db.close();
+                        reject(tx.error);
+                    };
                 };
                 request.onerror = () => reject(request.error);
             });
         }
 
-        async function importToIndexedDB(records, onProgress) {
+        // ========== PARSE EXCEL FILE ==========
+        async function parseExcelFile(file) {
             return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                const extension = file.name.split('.').pop().toLowerCase();
+                const reader = new FileReader();
+                
+                if (extension === 'csv') {
+                    reader.onload = (e) => {
+                        const lines = e.target.result.split(/\r?\n/);
+                        const delimiter = lines[0].includes(';') ? ';' : ',';
+                        const headers = parseCSVLine(lines[0], delimiter).map(h => h.toLowerCase());
+                        const data = [];
+                        for (let i = 1; i < lines.length; i++) {
+                            if (!lines[i] || !lines[i].trim()) continue;
+                            const row = parseCSVLine(lines[i], delimiter);
+                            data.push(row);
+                        }
+                        resolve({ headers, data });
+                    };
+                    reader.onerror = reject;
+                    reader.readAsText(file);
+                } else {
+                    reader.onload = (e) => {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const rows = XLSX.utils.sheet_to_json(firstSheet, { header: 1, defval: "" });
+                        if (rows.length === 0) reject(new Error('File is empty'));
+                        const headers = rows[0].map(h => String(h || '').trim().toLowerCase());
+                        resolve({ headers, data: rows.slice(1).filter(row => row.some(cell => cell && cell.toString().trim())) });
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                }
+            });
+        }
+
+        // ========== IMPORT ATTENDANCE ==========
+        async function importAttendance(file) {
+            const { headers, data } = await parseExcelFile(file);
+
+            const idxId = headers.findIndex(h => h === 'id' || h === 'user id' || h === 'no' || h === 'no.');
+            const idxFullName = headers.findIndex(h => h === 'full name' || h === 'fullname' || h === 'name');
+            const idxName = headers.findIndex(h => h === 'name' || h === 'nickname');
+            const idxEmail = headers.findIndex(h => h === 'email' || h === 'mail');
+            const idxPhone = headers.findIndex(h => h === 'phone' || h === 'mobile' || h === 'telp');
+            const idxCompany = headers.findIndex(h => h === 'company' || h === 'perusahaan' || h === 'company name');
+            const idxLuckyCode = headers.findIndex(h => h === 'lucky number' || h === 'luckynumber' || h === 'lucky_code');
+            const idxTableNumber = headers.findIndex(h => h === 'table number' || h === 'table' || h === 'table_no');
+            const idxAttendedAt = headers.findIndex(h => h === 'attended at' || h === 'attended_at');
+            const idxCreatedAt = headers.findIndex(h => h === 'created at' || h === 'created_at');
+            
+            if (idxId === -1 && idxFullName === -1) {
+                throw new Error('Column "ID" or "Full Name" not found! Please check your file.');
+            }
+            if (idxLuckyCode === -1) {
+                throw new Error('Column "Lucky Number" not found!');
+            }
+            
+            const records = [];
+            const usedLuckyCodes = new Set();
+            const usedIds = new Set();
+            let importedCount = 0;
+            let skippedCount = 0;
+            
+            for (const row of data) {
+                let rawId = '';
+                if (idxId !== -1 && row[idxId]) {
+                    rawId = String(row[idxId] || '').trim();
+                }
+                if (!rawId) {
+                    rawId = generateUUID();
+                    console.log(`Generated ID: ${rawId}`);
+                }
+                
+                if (usedIds.has(rawId)) {
+                    rawId = generateUUID();
+                    console.warn(`Duplicate ID, generated new: ${rawId}`);
+                }
+                usedIds.add(rawId);
+                
+                // Ambil Lucky Code
+                let luckyCode = '';
+                if (idxLuckyCode !== -1 && row[idxLuckyCode]) {
+                    luckyCode = String(row[idxLuckyCode] || '').trim();
+                }
+                
+                // Validasi lucky code (harus 4 digit)
+                if (!luckyCode || !/^\d{4}$/.test(luckyCode)) {
+                    do {
+                        luckyCode = Math.floor(1000 + Math.random() * 9000).toString();
+                    } while (usedLuckyCodes.has(luckyCode));
+                    console.warn(`Generated lucky code for ${rawId}: ${luckyCode}`);
+                }
+                if (usedLuckyCodes.has(luckyCode)) {
+                    do {
+                        luckyCode = Math.floor(1000 + Math.random() * 9000).toString();
+                    } while (usedLuckyCodes.has(luckyCode));
+                }
+                usedLuckyCodes.add(luckyCode);
+                
+                // Ambil nama
+                let namaValue = '';
+                if (idxFullName !== -1 && row[idxFullName]) {
+                    namaValue = String(row[idxFullName] || '').trim();
+                } else if (idxName !== -1 && row[idxName]) {
+                    namaValue = String(row[idxName] || '').trim();
+                } else {
+                    namaValue = "Attendee " + rawId;
+                }
+                
+                // Ambil data lainnya
+                const nameClean = (idxName !== -1 && row[idxName]) ? String(row[idxName] || '').trim() : '';
+                const emailClean = (idxEmail !== -1 && row[idxEmail]) ? String(row[idxEmail] || '').trim() : '';
+                const phoneClean = (idxPhone !== -1 && row[idxPhone]) ? String(row[idxPhone] || '').trim() : '';
+                const companyClean = (idxCompany !== -1 && row[idxCompany]) ? String(row[idxCompany] || '').trim() : '-';
+                const tableNumber = (idxTableNumber !== -1 && row[idxTableNumber]) ? String(row[idxTableNumber] || '').trim() : '';
+                const attendedAt = (idxAttendedAt !== -1 && row[idxAttendedAt]) ? String(row[idxAttendedAt] || '').trim() : '';
+                const createdAt = (idxCreatedAt !== -1 && row[idxCreatedAt]) ? String(row[idxCreatedAt] || '').trim() : new Date().toISOString();
+                
+                // Simpan ke record
+                records.push({
+                    id: rawId,
+                    lucky_code: luckyCode,
+                    nama: namaValue,
+                    name: nameClean,
+                    email: emailClean,
+                    phone: phoneClean,
+                    company: companyClean,
+                    table_number: tableNumber,      
+                    attended_at: attendedAt,       
+                    is_winner: 0,
+                    created_at: createdAt
+                });
+                
+                importedCount++;
+            }
+            
+            return records;
+        }
+
+        // ========== IMPORT PRIZES ==========
+        async function importPrizes(file) {
+            const { headers, data } = await parseExcelFile(file);
+            
+            console.log('📋 Prize Headers:', headers);
+            
+            // Find column indices sesuai format baru
+            // ID | Type | Item Type | Round | Name | Description | Link | Price | Picture | Created At | Updated At
+            const idxId = headers.findIndex(h => h === 'id');
+            const idxType = headers.findIndex(h => h === 'type');
+            const idxItemType = headers.findIndex(h => h === 'item type');
+            const idxRound = headers.findIndex(h => h === 'round');
+            const idxName = headers.findIndex(h => h === 'name');
+            const idxDescription = headers.findIndex(h => h === 'description');
+            const idxLink = headers.findIndex(h => h === 'link');
+            const idxPrice = headers.findIndex(h => h === 'price');
+            const idxPicture = headers.findIndex(h => h === 'picture');
+            const idxCreatedAt = headers.findIndex(h => h === 'created at');
+            const idxUpdatedAt = headers.findIndex(h => h === 'updated at');
+            
+            if (idxType === -1) throw new Error('Column "Type" not found!');
+            if (idxName === -1) throw new Error('Column "Name" not found!');
+            
+            const prizes = [];
+            let maxRound = 0;
+            let importedCount = 0;
+            let skippedCount = 0;
+            
+            for (const row of data) {
+                const type = String(row[idxType] || '').trim();
+                const name = String(row[idxName] || '').trim();
+                const round = parseInt(row[idxRound]) || 1;
+                const description = idxDescription !== -1 ? String(row[idxDescription] || '').trim() : '';
+                const price = idxPrice !== -1 ? String(row[idxPrice] || '').trim() : 'RM 0';
+                const picture = idxPicture !== -1 ? String(row[idxPicture] || '').trim() : '';
+                const link = idxLink !== -1 ? String(row[idxLink] || '').trim() : '';
+                const itemType = idxItemType !== -1 ? String(row[idxItemType] || '').trim() : 'product';
+                const id = idxId !== -1 ? String(row[idxId] || '').trim() : generateUUID();
+                const createdAt = idxCreatedAt !== -1 ? String(row[idxCreatedAt] || '').trim() : new Date().toISOString();
+                
+                if (!type || !name) {
+                    skippedCount++;
+                    continue;
+                }
+                
+                if (round > maxRound) maxRound = round;
+                
+                prizes.push({
+                    id: id,
+                    type: type,
+                    item_type: itemType,
+                    round: round,
+                    name: name,
+                    description: description,
+                    link: link,
+                    price: price,
+                    picture: picture,
+                    is_drawn: 0,
+                    created_at: createdAt,
+                    updated_at: new Date().toISOString()
+                });
+                
+                importedCount++;
+            }
+            
+            console.log(`📊 Imported ${importedCount} prizes, skipped ${skippedCount}`);
+            
+            // Auto assign stage IDs based on round
+            const stages = [];
+            for (let r = 1; r <= maxRound; r++) {
+                const roundPrizes = prizes.filter(p => p.round === r);
+                if (roundPrizes.length > 0) {
+                    const typeLabel = roundPrizes[0].type.replace('_', ' ').toUpperCase();
+                    stages.push({
+                        id: r,
+                        stage_name: `Round ${r}`,
+                        prize_name: `${typeLabel} ${r}`,
+                        prize_price: roundPrizes.reduce((sum, p) => {
+                            const priceMatch = p.price.match(/\d+/);
+                            return sum + (priceMatch ? parseInt(priceMatch[0]) : 0);
+                        }, 0),
+                        quota: roundPrizes.length,
+                        sequence: r,
+                        drawn_count: 0
+                    });
+                }
+            }
+            
+            return { prizes, stages };
+        }
+
+        // ========== IMPORT TO INDEXEDDB ==========
+        async function importToIndexedDB(storeName, records, onProgress) {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
                 request.onsuccess = function(event) {
                     const db = event.target.result;
-                    const transaction = db.transaction(["attendances"], "readwrite");
-                    const store = transaction.objectStore("attendances");
+
+                    // Proteksi: Cek apakah object store tersedia di DB
+                    if (!db.objectStoreNames.contains(storeName)) {
+                        db.close();
+                        reject(new Error(`Tabel '${storeName}' tidak ditemukan di database. Silakan reset storage atau naikkan CURRENT_VERSION di db-config.js.`));
+                        return;
+                    }
+
+                    const transaction = db.transaction([storeName], "readwrite");
+                    const store = transaction.objectStore(storeName);
                     
                     let imported = 0;
                     let errors = 0;
@@ -258,7 +568,7 @@
                             if (onProgress) onProgress(imported + errors, records.length);
                         };
                         addRequest.onerror = (err) => {
-                            console.error("Record injection dropped:", err.target.error);
+                            console.error("Error:", err.target.error);
                             errors++;
                             if (onProgress) onProgress(imported + errors, records.length);
                         };
@@ -270,475 +580,267 @@
                 request.onerror = () => reject(request.error);
             });
         }
+        // ========== MAIN IMPORT HANDLER ==========
+        let selectedFile = null;
 
-        $(document).ready(async function() {
-            try {
-                await initDatabase();
-            } catch (err) {
-                console.error("Database stack initialization broken:", err);
-                showMsgBox("Critical database link failure.");
+        function setupDropzone(dropzoneId, fileInputId, contentId) {
+            const dropzone = $(`#${dropzoneId}`);
+            const fileInput = $(`#${fileInputId}`);
+            const content = $(`#${contentId}`);
+            
+            dropzone.on('click', function(e) {
+                e.stopPropagation();
+                fileInput.click();
+            });
+            
+            fileInput.on('change', function(e) {
+                if (e.target.files && e.target.files[0]) {
+                    const file = e.target.files[0];
+                    selectedFile = file;
+                    const sizeKb = (file.size / 1024).toFixed(1);
+                    $('#file-name').text(file.name);
+                    $('#file-size').text(`${sizeKb} KB`);
+                    $('#file-info').removeClass('hidden');
+                    
+                    content.html(`
+                        <p class="text-sm font-semibold text-emerald-600">File attached</p>
+                        <p class="text-xs text-stone-400">${file.name} (${sizeKb} KB)</p>
+                    `);
+                }
+            });
+            
+            dropzone.on('dragover', function(e) {
+                e.preventDefault();
+                $(this).addClass('drag-over');
+            });
+            
+            dropzone.on('dragleave', function(e) {
+                e.preventDefault();
+                $(this).removeClass('drag-over');
+            });
+            
+            dropzone.on('drop', function(e) {
+                e.preventDefault();
+                $(this).removeClass('drag-over');
+                const files = e.originalEvent.dataTransfer.files;
+                if (files[0]) {
+                    selectedFile = files[0];
+                    fileInput[0].files = files;
+                    const sizeKb = (selectedFile.size / 1024).toFixed(1);
+                    $('#file-name').text(selectedFile.name);
+                    $('#file-size').text(`${sizeKb} KB`);
+                    $('#file-info').removeClass('hidden');
+                    
+                    content.html(`
+                        <p class="text-sm font-semibold text-emerald-600">File attached</p>
+                        <p class="text-xs text-stone-400">${selectedFile.name} (${sizeKb} KB)</p>
+                    `);
+                }
+            });
+        }
+
+        // Setup both dropzones
+        setupDropzone('dropzone-attendance', 'file-attendance', 'dropzone-content-attendance');
+        setupDropzone('dropzone-prizes', 'file-prizes', 'dropzone-content-prizes');
+
+        $('#btn-import').click(async function() {
+            if (!selectedFile) {
+                showMsgBox('No File Selected', 'Please select a file to import.');
                 return;
             }
             
-            let selectedFile = null;
-
-            $('#dropzone').on('click', function(e) {
-                e.stopPropagation();
-                $('#csv-file').click();
-            });
-
-            $('#csv-file').on('change', function(e) {
-                if (e.target.files && e.target.files[0]) {
-                    processFileObject(e.target.files[0]);
-                }
-            });
-
-            $('#dropzone').on('dragover', function(e) {
-                e.preventDefault(); $(this).addClass('drag-over');
-            }).on('dragleave drop', function(e) {
-                e.preventDefault(); $(this).removeClass('drag-over');
-            });
+            $('#progress-section').removeClass('hidden');
+            $('#result-section').addClass('hidden');
+            $('#btn-import').prop('disabled', true).text('Processing...');
+            $('#progress-bar').css('width', '20%');
+            $('#progress-status-text').text('Reading file...');
             
-            $('#dropzone').on('drop', function(e) {
-                const files = e.originalEvent.dataTransfer.files;
-                if (files[0] && files[0].name.endsWith('.csv')) {
-                    processFileObject(files[0]);
-                    $('#csv-file')[0].files = files;
+            try {
+                if (currentTab === 'attendance') {
+                    // Import Attendance
+                    $('#progress-status-text').text('Parsing attendance data...');
+                    const records = await importAttendance(selectedFile);
+                    $('#progress-bar').css('width', '50%');
+                    $('#progress-status-text').text(`Importing ${records.length} attendees...`);
+                    
+                    // PERBAIKAN: Hanya hapus data attendances (tidak menyentuh prizes/stages)
+                    await clearSpecificData(['attendances']);
+                    
+                    const result = await importToIndexedDB('attendances', records, (processed, total) => {
+                        const pct = Math.floor((processed / total) * 30);
+                        $('#progress-bar').css('width', `${50 + pct}%`);
+                        $('#progress-count').text(`${processed}/${total}`);
+                    });
+                    
+                    $('#progress-bar').css('width', '100%');
+                    $('#progress-status-text').text('Import complete!');
+                    
+                    $('#result-section').removeClass('hidden');
+                    $('#result-message').html(`
+                        <div class="bg-green-50/90 text-stone-900 border-emerald-600/20 p-5 rounded-xl">
+                            <div class="flex items-center gap-2 text-emerald-700">
+                                <span class="font-bold text-sm">✅ Attendance Imported Successfully</span>
+                            </div>
+                            <p class="text-xs text-stone-600 leading-relaxed mt-2">
+                                Loaded <strong>${result.imported}</strong> attendees.<br>
+                                ${result.errors > 0 ? `⚠️ ${result.errors} records skipped` : 'All records imported successfully.'}
+                            </p>
+                            <div class="flex gap-2 pt-4">
+                                <a href="lucky-draw-action.html" class="btn-primary text-white text-xs font-semibold px-4 py-2 rounded-lg">Open Control Panel</a>
+                            </div>
+                        </div>
+                    `);
+                    
                 } else {
-                    showMsgBox('Invalid configuration format.', 'Drop standard .csv files only.');
+                    // Import Prizes
+                    $('#progress-status-text').text('Parsing prize data...');
+                    const { prizes, stages } = await importPrizes(selectedFile);
+                    $('#progress-bar').css('width', '50%');
+                    $('#progress-status-text').text(`Importing ${prizes.length} prizes...`);
+                    
+                    // PERBAIKAN: Hanya hapus data prizes & draw_stages (tidak menyentuh attendances)
+                    await clearSpecificData(['prizes', 'draw_stages']);
+                    
+                    // Import stages first
+                    const stageResult = await importToIndexedDB('draw_stages', stages, (processed, total) => {
+                        const pct = Math.floor((processed / total) * 30);
+                        $('#progress-bar').css('width', `${50 + pct}%`);
+                        $('#progress-count').text(`Stages: ${processed}/${total}`);
+                    });
+                    
+                    // Then import prizes
+                    const prizeResult = await importToIndexedDB('prizes', prizes, (processed, total) => {
+                        const pct = Math.floor((processed / total) * 20);
+                        $('#progress-bar').css('width', `${80 + pct}%`);
+                        $('#progress-count').text(`Prizes: ${processed}/${total}`);
+                    });
+                    
+                    $('#progress-bar').css('width', '100%');
+                    $('#progress-status-text').text('Import complete!');
+                    
+                    $('#result-section').removeClass('hidden');
+                    $('#result-message').html(`
+                        <div class="bg-green-50/90 text-stone-900 border-emerald-600/20 p-5 rounded-xl">
+                            <div class="flex items-center gap-2 text-emerald-700">
+                                <span class="font-bold text-sm">✅ Prizes Imported Successfully</span>
+                            </div>
+                            <p class="text-xs text-stone-600 leading-relaxed mt-2">
+                                Loaded <strong>${prizeResult.imported}</strong> prizes in <strong>${stageResult.imported}</strong> rounds.<br>
+                                ${prizeResult.errors > 0 ? `⚠️ ${prizeResult.errors} records skipped` : 'All records imported successfully.'}
+                            </p>
+                            <div class="flex gap-2 pt-4">
+                                <a href="lucky-draw-action.html" class="btn-primary text-white text-xs font-semibold px-4 py-2 rounded-lg">Open Control Panel</a>
+                            </div>
+                        </div>
+                    `);
                 }
-            });
-
-            function processFileObject(file) {
-                selectedFile = file;
-                const sizeKb = (selectedFile.size / 1024).toFixed(1);
-                $('#file-name').text(selectedFile.name);
-                $('#file-size').text(`${sizeKb} KB`);
-                $('#file-info').removeClass('hidden');
                 
-                $('#dropzone-content').html(`
-                    <p class="text-sm font-semibold text-emerald-600">File attached and staging successfully</p>
-                    <p class="text-xs text-stone-400">${selectedFile.name} (${sizeKb} KB)</p>
+            } catch (err) {
+                console.error('Import error:', err);
+                $('#result-section').removeClass('hidden');
+                $('#result-message').html(`
+                    <div class="bg-red-50 text-red-900 border-red-200/50 p-4 rounded-xl text-xs font-mono">
+                        ❌ Error: ${err.message}
+                    </div>
                 `);
+            } finally {
+                $('#btn-import').prop('disabled', false).text('Start Import Process');
+                setTimeout(() => {
+                    $('#progress-section').addClass('hidden');
+                }, 3000);
             }
-
-            $('#btn-import').click(async function() {
-                if (!selectedFile) {
-                    showMsgBox('Target acquisition required.', 'Select CSV packet file first.');
-                    return;
-                }
-                
-                $('#progress-section').removeClass('hidden');
-                $('#result-section').addClass('hidden');
-                $('#btn-import').prop('disabled', true).text('Processing Package...');
-                $('#progress-bar').css('width', '20%');
-                $('#progress-status-text').text('Reading file buffer...');
-                
-                const reader = new FileReader();
-                reader.readAsText(selectedFile);
-                
-                 reader.onload = async function(e) {
-                    try {
-
-                        /* const lines = e.target.result.split(/\r?\n/);
-                        if (lines.length <= 1) throw new Error('Empty dataset transaction context rejected.');
-
-                        const delimiter = lines[0].includes(';') ? ';' : ',';
-                        const headers = lines[0].split(delimiter).map(h => h.replace(/['"]+/g, '').trim().toLowerCase());
-                        
-                        const idxId = headers.indexOf('id');
-                        const idxFullName = headers.indexOf('full name');
-                        const idxName = headers.indexOf('name');
-                        const idxEmail = headers.indexOf('email');
-                        const idxPhone = headers.indexOf('phone');
-                        const idxCompany = headers.indexOf('company');
-                        const idxLuckyCode = headers.indexOf('lucky number'); 
-
-                        if (idxId === -1) throw new Error('Primary structure missing: CSV header must contain explicit "ID" column.');
-                        if (idxLuckyCode === -1) throw new Error('CSV must contain "Lucky Number" column for lucky codes.');
-
-                        const records = [];
-                        const usedLuckyCodes = new Set();
-                        const usedOriginalIds = new Set();
-                        
-                        $('#progress-bar').css('width', '50%');
-                        $('#progress-status-text').text('Mapping allocation layout...');
-
-                        for (let i = 1; i < lines.length; i++) {
-                            if (!lines[i] || !lines[i].trim()) continue;
-                            const columns = lines[i].split(delimiter);
-                            if (columns.length <= idxId) continue;
-                            
-                            const rawId = columns[idxId].replace(/['"]+/g, '').trim();
-                            if (!rawId) continue;
-                            
-                            if (usedOriginalIds.has(rawId)) continue;
-                            usedOriginalIds.add(rawId);
-                            
-                            let luckyCode = '';
-                            if (idxLuckyCode !== -1 && columns[idxLuckyCode]) {
-                                luckyCode = columns[idxLuckyCode].replace(/['"]+/g, '').trim();
-                            }
-                            
-                            if (!luckyCode || !/^\d{4}$/.test(luckyCode)) {
-                                console.warn(`Invalid lucky code for ${rawId}: "${luckyCode}", skipping...`);
-                                continue;
-                            }
-                            
-                            if (usedLuckyCodes.has(luckyCode)) {
-                                console.warn(`Duplicate lucky code ${luckyCode} for ${rawId}, skipping...`);
-                                continue;
-                            }
-                            usedLuckyCodes.add(luckyCode);
-                            
-                            let namaValue = '';
-                            if (idxFullName !== -1 && columns[idxFullName]) {
-                                namaValue = columns[idxFullName].replace(/['"]+/g, '').trim();
-                            } else if (idxName !== -1 && columns[idxName]) {
-                                namaValue = columns[idxName].replace(/['"]+/g, '').trim();
-                            } else {
-                                namaValue = "Attendee " + rawId;
-                            }
-                            
-                            const nameClean = idxName !== -1 && columns[idxName] ? columns[idxName].replace(/['"]+/g, '').trim() : '';
-                            const emailClean = idxEmail !== -1 && columns[idxEmail] ? columns[idxEmail].replace(/['"]+/g, '').trim() : '';
-                            const phoneClean = idxPhone !== -1 && columns[idxPhone] ? columns[idxPhone].replace(/['"]+/g, '').trim() : '';
-                            const companyClean = idxCompany !== -1 && columns[idxCompany] ? columns[idxCompany].replace(/['"]+/g, '').trim() : '-';
-                            
-                            records.push({
-                                id: rawId,
-                                lucky_code: luckyCode,  
-                                nama: namaValue,
-                                name: nameClean,
-                                email: emailClean,
-                                phone: phoneClean,
-                                company: companyClean,
-                                is_winner: 0,
-                                created_at: new Date().toISOString()
-                            });
-                        } */
-
-                        
-                        let totalRows = 0;
-                        let skippedInvalidLuckyCode = 0;
-                        let skippedDuplicateLuckyCode = 0;
-                        let skippedDuplicateId = 0;
-                        let skippedEmptyId = 0;
-                        let skippedNoColumn = 0;
-                        
-                        const lines = e.target.result.split(/\r?\n/);
-                        if (lines.length <= 1) throw new Error('Empty dataset transaction context rejected.');
-
-                        const delimiter = lines[0].includes(';') ? ';' : ',';
-                        const headers = lines[0].split(delimiter).map(h => h.replace(/['"]+/g, '').trim().toLowerCase());
-
-                        console.log('CSV Headers found:', headers);
-
-                        // Mapping berdasarkan POSISI
-                        // 0: ID, 1: Full Name, 2: Name, 3: Email, 4: Phone, 5: Company, 6: Lucky Number
-                        const idxId = 0;
-                        const idxFullName = 1;
-                        const idxName = 2;
-                        const idxEmail = 3;
-                        const idxPhone = 4;
-                        const idxCompany = 5;
-                        const idxLuckyCode = 6;
-
-                        // Validasi header
-                        if (headers[idxId] !== 'id') {
-                            console.warn(`Column 0 should be "ID", but got "${headers[idxId]}"`);
-                        }
-                        if (headers[idxLuckyCode] !== 'lucky number') {
-                            console.warn(`Column 6 should be "Lucky Number", but got "${headers[idxLuckyCode]}"`);
-                        }
-
-                        const records = [];
-                        const usedLuckyCodes = new Set();
-                        const usedOriginalIds = new Set();
-
-                        for (let i = 1; i < lines.length; i++) {
-                            if (!lines[i] || !lines[i].trim()) continue;
-                            totalRows++;
-                            
-                            //const columns = lines[i].split(delimiter);
-                            const columns = parseCSVLine(lines[i], delimiter);
-                            
-                            if (columns.length <= idxLuckyCode) {
-                                console.warn(`Line ${i+1}: Not enough columns, skipping...`);
-                                skippedNoColumn++;
-                                continue;
-                            }
-                            
-                            let rawId = columns[idxId].replace(/['"]+/g, '').trim();
-                            
-                            // Jika ID kosong, generate UUID
-                            if (!rawId) {
-                                rawId = generateUUID();
-                                console.log(`Empty ID, generated new ID: ${rawId}`);
-                                skippedEmptyId++;
-                            }
-                            
-                            // Jika ID sudah pernah digunakan, generate UUID baru
-                            if (usedOriginalIds.has(rawId)) {
-                                const oldId = rawId;
-                                rawId = generateUUID();
-                                console.warn(`Duplicate ID "${oldId}" (${namaValue}), generated new ID: "${rawId}"`);
-                                skippedDuplicateId++;
-                            }
-                            usedOriginalIds.add(rawId);
-                            
-                            let luckyCode = '';
-                            if (idxLuckyCode !== -1 && columns[idxLuckyCode]) {
-                                luckyCode = columns[idxLuckyCode].replace(/['"]+/g, '').trim();
-                            }
-                            
-                            // Validasi lucky code - jika tidak valid, generate random
-                            if (!luckyCode || !/^\d{4}$/.test(luckyCode)) {
-                                console.warn(`Invalid lucky code for ${rawId}: "${luckyCode}", generating random...`);
-                                do {
-                                    luckyCode = Math.floor(1000 + Math.random() * 9000).toString();
-                                } while (usedLuckyCodes.has(luckyCode));
-                                skippedInvalidLuckyCode++;
-                            }
-                            
-                            // Jika lucky code duplikat, generate random baru
-                            if (usedLuckyCodes.has(luckyCode)) {
-                                console.warn(`Duplicate lucky code ${luckyCode} for ${rawId}, generating new...`);
-                                do {
-                                    luckyCode = Math.floor(1000 + Math.random() * 9000).toString();
-                                } while (usedLuckyCodes.has(luckyCode));
-                                skippedDuplicateLuckyCode++;
-                            }
-                            usedLuckyCodes.add(luckyCode);
-                            
-                            let namaValue = '';
-                            if (idxFullName !== -1 && columns[idxFullName]) {
-                                namaValue = columns[idxFullName].replace(/['"]+/g, '').trim();
-                            } else if (idxName !== -1 && columns[idxName]) {
-                                namaValue = columns[idxName].replace(/['"]+/g, '').trim();
-                            } else {
-                                namaValue = "Attendee " + rawId;
-                            }
-                            
-                            const nameClean = (idxName !== -1 && columns[idxName]) ? columns[idxName].replace(/['"]+/g, '').trim() : '';
-                            const emailClean = (idxEmail !== -1 && columns[idxEmail]) ? columns[idxEmail].replace(/['"]+/g, '').trim() : '';
-                            const phoneClean = (idxPhone !== -1 && columns[idxPhone]) ? columns[idxPhone].replace(/['"]+/g, '').trim() : '';
-                            const companyClean = (idxCompany !== -1 && columns[idxCompany]) ? columns[idxCompany].replace(/['"]+/g, '').trim() : '-';
-                            
-                            records.push({
-                                id: rawId,
-                                lucky_code: luckyCode,
-                                nama: namaValue,
-                                name: nameClean,
-                                email: emailClean,
-                                phone: phoneClean,
-                                company: companyClean,
-                                is_winner: 0,
-                                created_at: new Date().toISOString()
-                            });
-                        }
-
-                        if (records.length === 0) throw new Error('No valid records found!');
-
-                        $('#progress-bar').css('width', '70%');
-                        $('#progress-status-text').text(`Clearing memory table...`);
-                        await clearAllData();
-                        
-                        const result = await importToIndexedDB(records, (processed, total) => {
-                            const pct = Math.floor((processed / total) * 30);
-                            $('#progress-bar').css('width', `${70 + pct}%`);
-                            $('#progress-count').text(`${processed}/${total}`);
-                        });
-                        
-                        $('#progress-bar').css('width', '100%');
-                        $('#progress-status-text').text(`Process transaction finalized.`);
-                        
-                        $('#result-section').removeClass('hidden');
-                        $('#result-message')
-                            .removeClass('bg-red-50 text-red-800 border-red-200 bg-green-50 text-green-800 border-green-200')
-                            .addClass('bg-green-50/90 text-stone-900 border-emerald-600/20 p-5');
-                        
-                        $('#result-message').html(`
-                            <div class="space-y-3">
-                                <div class="flex items-center gap-2 text-emerald-700">
-                                    <span class="font-bold text-sm">✓ Injection Pipeline Completed Successfully</span>
-                                </div>
-                                <p class="text-xs text-stone-600 leading-relaxed">
-                                    Loaded <strong class="text-stone-900">${result.imported} entities</strong> into core system storage space. 
-                                    Lucky codes imported from CSV column. Failed packets: ${result.errors}.
-                                </p>
-                                <div class="flex gap-2 pt-2">
-                                    <a href="lucky-draw-action.html" class="btn-primary text-white text-xs font-semibold px-4 py-2 rounded-lg">Open Control Panel</a>
-                                    <a href="index.html" class="btn-secondary text-xs font-semibold px-4 py-2 rounded-lg">Home Terminal</a>
-                                </div>
-                            </div>
-                        `);
-                        
-                    } catch (err) {
-                        console.error(err);
-                        $('#result-section').removeClass('hidden');
-                        $('#result-message')
-                            .removeClass('bg-green-50 text-green-800 border-green-200')
-                            .addClass('bg-red-50 text-red-900 border-red-200/50 p-4 text-xs font-mono');
-                        $('#result-message').text(`Execution Aborted: ${err.message}`);
-                    } finally {
-                        $('#btn-import').prop('disabled', false).text('📥 Start Import Process');
-                        setTimeout(() => { $('#progress-section').addClass('hidden'); }, 4000);
-                    }
-                };
-            });
-
-            $('#btn-clear').click(async function() {
-                const userConfirmed = await showConfirmBox(
-                    'Operational Override', 
-                    'Wipe database memory structures? This action clears all attendee registries permanently.'
-                );
-
-                if (userConfirmed) {
-                    try {
-                        await clearAllData();
-                        
-                        showMsgBox('Storage sectors reset complete.', 'All attendee registries have been cleared.');
-                        
-                        selectedFile = null;
-                        $('#csv-file').val('');
-                        $('#file-info').addClass('hidden');
-                        $('#dropzone-content').html(`
-                            <div class="w-12 h-12 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center justify-center mx-auto">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                </svg>
-                            </div>
-                            <div>
-                                <p class="text-sm font-semibold text-stone-800">Click to browse or drop file here</p>
-                                <p class="text-xs text-stone-400 mt-1">Accepts native Microsoft Excel CSV format</p>
-                            </div>
-                        `);
-                    } catch (err) {
-                        showMsgBox('Operational failure during structural wipe.', 'An error occurred while clearing the database configuration fields.');
-                    }
-                }
-            });
         });
 
+        // ========== CLEAR BUTTON ==========
+        $('#btn-clear').click(async function() {
+            if (confirm('⚠️ WARNING: This will DELETE ALL DATA. Are you sure?')) {
+                try {
+                    await clearAllData();
+                    showMsgBox('Success', 'All data has been cleared.');
+                    selectedFile = null;
+                    $('#file-attendance').val('');
+                    $('#file-prizes').val('');
+                    $('#file-info').addClass('hidden');
+                    $('#dropzone-content-attendance').html(`
+                        <div class="w-12 h-12 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center justify-center mx-auto">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-stone-800">Click to browse or drop file here</p>
+                            <p class="text-xs text-stone-400 mt-1">Accepts Excel (.xlsx) or CSV (.csv)</p>
+                        </div>
+                    `);
+                    $('#dropzone-content-prizes').html(`
+                        <div class="w-12 h-12 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center justify-center mx-auto">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-stone-800">Click to browse or drop prize file here</p>
+                            <p class="text-xs text-stone-400 mt-1">Excel format with prize data</p>
+                        </div>
+                    `);
+                } catch (err) {
+                    showMsgBox('Error', 'Failed to clear data: ' + err.message);
+                }
+            }
+        });
+
+        // ========== MSG BOX FUNCTIONS ==========
         function showMsgBox(title, message) {
-            $('#msgbox-title').text(title);
-            $('#msgbox-text').text(message);
-            
-            $('#desktop-msgbox').removeClass('hidden');
-            
-            setTimeout(() => {
-                $('#msgbox-card').removeClass('scale-95 opacity-0').addClass('scale-100 opacity-100');
-            }, 10);
+            alert(title + '\n\n' + message);
         }
 
-        // Fungsi untuk menutup MsgBox
-        function closeMsgBox() {
-            $('#msgbox-card').removeClass('scale-100 opacity-100').addClass('scale-95 opacity-0');
-            setTimeout(() => {
-                $('#desktop-msgbox').addClass('hidden');
-            }, 200); 
-        }
-       
-        function showConfirmBox(title, message) {
-            return new Promise((resolve) => {
-                $('#confirmbox-title').text(title);
-                $('#confirmbox-text').text(message);
-                
-                $('#desktop-confirmbox').removeClass('hidden');
-                setTimeout(() => {
-                    $('#confirmbox-card').removeClass('scale-95 opacity-0').addClass('scale-100 opacity-100');
-                }, 10);
+        // ========== INIT ==========
+        $(document).ready(async function() {
+            try {
+                //await initDatabase();
+                await window.initDatabase();
+                console.log('Database initialized');
+            } catch (err) {
+                console.error('Database init failed:', err);
+                showMsgBox('Database Error', 'Failed to initialize database: ' + err.message);
+            }
+        });
 
-                $('#btn-confirm-cancel').off('click').on('click', function() {
-                    closeConfirmBox();
-                    resolve(false);
-                });
 
-                $('#btn-confirm-proceed').off('click').on('click', function() {
-                    closeConfirmBox();
-                    resolve(true);
-                });
+        async function clearSpecificData(storesToClear) {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
+                request.onsuccess = function(event) {
+                    const db = event.target.result;
+                    
+                    // Filter hanya store yang benar-benar ada di database
+                    const validStores = storesToClear.filter(name => db.objectStoreNames.contains(name));
+                    
+                    if (validStores.length === 0) {
+                        db.close();
+                        resolve();
+                        return;
+                    }
+                    
+                    const tx = db.transaction(validStores, "readwrite");
+                    validStores.forEach(storeName => {
+                        tx.objectStore(storeName).clear();
+                    });
+                    
+                    tx.oncomplete = () => { 
+                        db.close(); 
+                        resolve(); 
+                    };
+                    tx.onerror = () => {
+                        db.close();
+                        reject(tx.error);
+                    };
+                };
+                request.onerror = () => reject(request.error);
             });
         }
 
-        function closeConfirmBox() {
-            $('#confirmbox-card').removeClass('scale-100 opacity-100').addClass('scale-95 opacity-0');
-            setTimeout(() => {
-                $('#desktop-confirmbox').addClass('hidden');
-            }, 200);
-        }
     </script>
-
-    <div id="desktop-msgbox" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl border border-stone-200 w-full max-w-sm shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-200" id="msgbox-card">
-            
-            <div class="bg-stone-100 px-4 py-2 border-b border-stone-200 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-                    <span class="text-[11px] font-mono font-bold tracking-wider text-stone-500 uppercase">System Notification</span>
-                </div>
-                <button type="button" onclick="closeMsgBox()" class="text-stone-400 hover:text-stone-700 text-xs font-bold focus:outline-none">&times;</button>
-            </div>
-
-            <div class="p-6 flex items-start gap-4">
-                <div class="p-2.5 bg-amber-50 border border-amber-200 text-amber-700 rounded-xl shrink-0">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
-                    </svg>
-                </div>
-                <div class="space-y-1">
-                    <h3 class="text-sm font-bold text-stone-900" id="msgbox-title">Execution Halt</h3>
-                    <p class="text-xs text-stone-600 leading-relaxed font-medium" id="msgbox-text">
-                        Target acquisition required: Select CSV packet file first.
-                    </p>
-                </div>
-            </div>
-
-            <div class="bg-stone-50 px-4 py-3 border-t border-stone-150 flex justify-end">
-                <button type="button" onclick="closeMsgBox()" class="bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold py-2 px-5 rounded-lg shadow-sm transition-colors focus:outline-none min-w-[4rem] text-center">
-                    OK
-                </button>
-            </div>
-
-        </div>
-    </div>
-
-    <div id="desktop-confirmbox" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-        <div class="bg-white rounded-2xl border border-stone-200 w-full max-w-sm shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-200" id="confirmbox-card">
-            
-            <div class="bg-stone-100 px-4 py-2 border-b border-stone-200 flex items-center justify-between">
-                <div class="flex items-center gap-2">
-                    <span class="w-2 h-2 rounded-full bg-red-500"></span>
-                    <span class="text-[11px] font-mono font-bold tracking-wider text-stone-500 uppercase">System Override Request</span>
-                </div>
-            </div>
-
-            <div class="p-6 flex items-start gap-4">
-                <div class="p-2.5 bg-red-50 border border-red-100 text-red-600 rounded-xl shrink-0">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-4v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
-                    </svg>
-                </div>
-                <div class="space-y-1">
-                    <h3 class="text-sm font-bold text-stone-900" id="confirmbox-title">Dangerous Action</h3>
-                    <p class="text-xs text-stone-600 leading-relaxed font-medium" id="confirmbox-text">
-                        Are you sure you want to proceed?
-                    </p>
-                </div>
-            </div>
-
-            <div class="bg-stone-50 px-4 py-3 border-t border-stone-150 flex justify-end gap-2">
-                <button type="button" id="btn-confirm-cancel" class="bg-stone-200 hover:bg-stone-300 text-stone-700 text-xs font-bold py-2 px-4 rounded-lg transition-colors focus:outline-none min-w-[4.5rem]">
-                    Cancel
-                </button>
-                <button type="button" id="btn-confirm-proceed" class="bg-red-600 hover:bg-red-700 text-white text-xs font-bold py-2 px-4 rounded-lg shadow-sm transition-colors focus:outline-none min-w-[4.5rem]">
-                    Proceed
-                </button>
-            </div>
-
-        </div>
-    </div>
 
 </body>
 </html>
