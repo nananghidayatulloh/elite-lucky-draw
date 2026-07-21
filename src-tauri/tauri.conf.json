@@ -15,7 +15,8 @@
         "url": "index.html",
         "width": 1000,
         "height": 750,
-        "resizable": true
+        "resizable": true,
+        "devtools": true
       },
       {
         "title": "Lucky Draw - Main Screen",

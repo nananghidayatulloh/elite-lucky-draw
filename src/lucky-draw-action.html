@@ -72,6 +72,9 @@
             <button id="btn-bulk-draw" class="w-1/5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-sm">
                 START BULK DRAW
             </button>
+            <button id="btn-preset-draw" class="w-1/5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-xs px-2">
+                PRESET WINNER
+            </button>
             <a href="index.html" class="w-1/5 bg-stone-800 hover:bg-stone-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-sm">
                 Dashboard
             </a>
@@ -167,8 +170,10 @@
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-stone-700">Table Number:</label>
-                        <input type="text" id="bulk-table-number" class="w-full border rounded-xl px-4 py-2 text-stone-900" placeholder="Enter table number (e.g. 1, 2, 3)...">
-                        <p class="text-xs text-stone-400 mt-1">Draw winners from a specific table</p>
+                        <select id="bulk-table-number" class="w-full border rounded-xl px-4 py-2 text-stone-900">
+                            <option value="">-- Select Table --</option>
+                        </select>
+                        <p class="text-xs text-stone-400 mt-1">Select table from imported attendance list</p>
                     </div>
                     <div>
                         <label class="block text-sm font-semibold text-stone-700">Number of Winners:</label>
@@ -176,7 +181,7 @@
                     </div>
                     <div class="flex gap-3 pt-4">
                         <button id="bulk-execute" class="flex-1 bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-xl transition-all">
-                            🎲 Execute Bulk Draw
+                            Execute Bulk Draw
                         </button>
                         <button id="bulk-close" class="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold py-3 rounded-xl transition-all">
                             Cancel
@@ -211,11 +216,45 @@
                 
                 <div class="flex gap-3">
                     <button id="export-modal-open-folder" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all">
-                        📁 Open Folder
+                        Open Folder
                     </button>
                     <button id="export-modal-close" class="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold py-3 rounded-xl transition-all">
                         Close
                     </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preset Winner Modal -->
+    <div id="preset-draw-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden">
+            <div class="bg-gradient-to-r from-amber-600 to-amber-700 px-6 py-4">
+                <h3 class="text-white font-bold text-xl">Set Fixed Winner (Rigged Draw)</h3>
+            </div>
+            <div class="p-6">
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-semibold text-stone-700">Select Prize / Round:</label>
+                        <select id="preset-prize-select" class="w-full border rounded-xl px-4 py-2 text-stone-900">
+                            <option value="">-- Select Prize --</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-stone-700">Search Participant Name / Code:</label>
+                        <select id="preset-attendee-select" class="w-full border rounded-xl px-4 py-2 text-stone-900">
+                            <option value="">-- Select Participant --</option>
+                        </select>
+                        <p class="text-xs text-stone-400 mt-1">This specific participant will be shown on projector screen.</p>
+                    </div>
+                    <div class="flex gap-3 pt-4">
+                        <button id="preset-execute" class="flex-1 bg-amber-600 hover:bg-amber-700 text-white font-bold py-3 rounded-xl transition-all">
+                            Execute Draw on Stage
+                        </button>
+                        <button id="preset-close" class="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold py-3 rounded-xl transition-all">
+                            Cancel
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -248,6 +287,43 @@
                 request.onsuccess = (e) => resolve(e.target.result);
                 request.onerror = (e) => reject(e.target.error);
             });
+        }
+
+        function formatPrizePrice(price) {
+            if (!price) return 'RM -';
+            
+            // Jika sudah dalam format string dengan RM
+            if (typeof price === 'string' && price.startsWith('RM')) {
+                // Cek apakah ada angka setelah RM
+                const numMatch = price.match(/\d+/);
+                if (numMatch) {
+                    const num = parseInt(numMatch[0].replace(/,/g, ''));
+                    if (num > 0) {
+                        return `RM ${num.toLocaleString()}`;
+                    }
+                }
+                return price;
+            }
+            
+            // Jika number
+            if (typeof price === 'number') {
+                if (price > 0) {
+                    return `RM ${price.toLocaleString()}`;
+                }
+                return 'RM -';
+            }
+            
+            // Jika string angka
+            if (typeof price === 'string') {
+                const cleaned = price.replace(/[^0-9]/g, '');
+                const num = parseInt(cleaned);
+                if (num > 0) {
+                    return `RM ${num.toLocaleString()}`;
+                }
+                return price || 'RM -';
+            }
+            
+            return 'RM -';
         }
 
         async function getStages() {
@@ -463,70 +539,75 @@
         }
 
         async function renderWinnerTable() {
-        const db = await getDatabase();
-        const stages = await getStages();
-        const prizes = await getPrizes(); 
-        return new Promise((resolve, reject) => {
-            const tx = db.transaction(["winners", "attendances"], "readonly");
-            const winnersStore = tx.objectStore("winners");
-            const attendancesStore = tx.objectStore("attendances");
+            const db = await getDatabase();
+            const stages = await getStages();
+            const prizes = await getPrizes(); // Mengambil daftar prizes asli
             
-            const winnersRequest = winnersStore.getAll();
-            winnersRequest.onsuccess = async () => {
-                const winners = winnersRequest.result;
-                const winnerRows = [];
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction(["winners", "attendances"], "readonly");
+                const winnersStore = tx.objectStore("winners");
+                const attendancesStore = tx.objectStore("attendances");
                 
-                for (let i = 0; i < winners.length; i++) {
-                    const w = winners[i];
-                    const attendanceReq = attendancesStore.get(w.attendance_id);
+                const winnersRequest = winnersStore.getAll();
+                winnersRequest.onsuccess = async () => {
+                    const winners = winnersRequest.result;
+                    const winnerRows = [];
                     
-                    await new Promise((resolveAtt) => {
-                        attendanceReq.onsuccess = () => {
-                            const attendance = attendanceReq.result;
-                            
-                            // 1. Cari berdasarkan stage_id (Auto Draw)
-                            const stage = stages.find(s => String(s.id) === String(w.stage_id));
-                            
-                            // 2. Cari berdasarkan prize_id (Bulk Draw) jika stage_id tidak ada
-                            const prize = prizes.find(p => String(p.id) === String(w.prize_id));
-                            
-                            // Tentukan nama hadiah terbaik
-                            const prizeName = prize?.name || stage?.prize_name || 'Unknown Prize';
-                            
-                            winnerRows.push({
-                                no: i + 1,
-                                prize_name: prizeName,
-                                nama: attendance?.nama || 'Unknown',
-                                lucky_code: attendance?.lucky_code || '----',
-                                drawn_at: new Date(w.drawn_at).toLocaleTimeString()
-                            });
-                            resolveAtt();
-                        };
-                        attendanceReq.onerror = resolveAtt;
-                    });
-                }
-                
-                $('#table-winner-body').empty();
-                if (winnerRows.length > 0) {
-                    winnerRows.forEach(w => {
-                        $('#table-winner-body').append(`
-                            <tr class="hover:bg-amber-50/50 transition-colors">
-                                <td class="px-4 py-3 font-medium">${w.no}</td>
-                                <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-bold bg-amber-100 text-amber-700 rounded-md">${w.prize_name}</span></td>
-                                <td class="px-4 py-3 font-bold text-stone-900">${w.nama}</td>
-                                <td class="px-4 py-3 font-mono text-amber-700 font-bold">${w.lucky_code}</td>
-                                <td class="px-4 py-3 text-xs text-stone-400">${w.drawn_at}</td>
-                            </tr>
-                        `);
-                    });
-                } else {
-                    $('#table-winner-body').html(`<tr><td colspan="5" class="px-4 py-12 text-center text-stone-500">No winners yet. Start the draw!</td></tr>`);
-                }
-                resolve();
-            };
-            tx.oncomplete = () => db.close();
-        });
-    }
+                    for (let i = 0; i < winners.length; i++) {
+                        const w = winners[i];
+                        const attendanceReq = attendancesStore.get(w.attendance_id);
+                        
+                        await new Promise((resolveAtt) => {
+                            attendanceReq.onsuccess = () => {
+                                const attendance = attendanceReq.result;
+                                
+                                // Cari berdasarkan prize_id terlebih dahulu
+                                let prize = prizes.find(p => String(p.id) === String(w.prize_id));
+                                const stage = stages.find(s => String(s.id) === String(w.stage_id));
+                                
+                                // Jika prize belum ketemu tapi stage_id ada (Auto Draw), 
+                                // cari hadiah yang berada di round/stage yang sama
+                                if (!prize && stage) {
+                                    prize = prizes.find(p => String(p.round) === String(stage.id) || String(p.round) === String(stage.sequence));
+                                }
+                                
+                                // Prioritaskan Nama Barang Asli (`prize.name`), jika kosong baru `stage.prize_name`
+                                const displayPrizeName = prize?.name || stage?.prize_name || 'Unknown Prize';
+                                
+                                winnerRows.push({
+                                    no: i + 1,
+                                    prize_name: displayPrizeName, 
+                                    nama: attendance?.nama || attendance?.name || 'Unknown',
+                                    lucky_code: attendance?.lucky_code || '----',
+                                    drawn_at: new Date(w.drawn_at).toLocaleTimeString()
+                                });
+                                resolveAtt();
+                            };
+                            attendanceReq.onerror = resolveAtt;
+                        });
+                    }
+                    
+                    $('#table-winner-body').empty();
+                    if (winnerRows.length > 0) {
+                        winnerRows.forEach(w => {
+                            $('#table-winner-body').append(`
+                                <tr class="hover:bg-amber-50/50 transition-colors">
+                                    <td class="px-4 py-3 font-medium">${w.no}</td>
+                                    <td class="px-4 py-3"><span class="px-2 py-0.5 text-xs font-bold bg-amber-100 text-amber-700 rounded-md">${w.prize_name}</span></td>
+                                    <td class="px-4 py-3 font-bold text-stone-900">${w.nama}</td>
+                                    <td class="px-4 py-3 font-mono text-amber-700 font-bold">${w.lucky_code}</td>
+                                    <td class="px-4 py-3 text-xs text-stone-400">${w.drawn_at}</td>
+                                </tr>
+                            `);
+                        });
+                    } else {
+                        $('#table-winner-body').html(`<tr><td colspan="5" class="px-4 py-12 text-center text-stone-500">No winners yet. Start the draw!</td></tr>`);
+                    }
+                    resolve();
+                };
+                tx.oncomplete = () => db.close();
+            });
+        }
 
         async function selectStage(stageId) {
             const stages = await getStages();
@@ -570,7 +651,7 @@
                 return false;
             }
             if (currentStage.drawn_count >= currentStage.quota) {
-                alert(`🏆 ${currentStage.prize_name} is already completed!`);
+                alert(`${currentStage.prize_name} is already completed!`);
                 return false;
             }
             if (!projectorReady) {
@@ -651,7 +732,7 @@
             // Save to winners table (is_winner already updated)
             await saveWinner(pendingWinner, pendingStage.id);
             
-            console.log(`✅ Winner SAVED: ${pendingWinner.nama} (${pendingWinner.lucky_code})`);
+            console.log(`Winner SAVED: ${pendingWinner.nama} (${pendingWinner.lucky_code})`);
             
             await renderWinnerTable();
             await renderStages();
@@ -669,7 +750,7 @@
                 if (nextStage) {
                     await selectStage(nextStage.id);
                 } else {
-                    alert('🏆 ALL PRIZES HAVE BEEN AWARDED! 🏆');
+                    alert('ALL PRIZES HAVE BEEN AWARDED!');
                 }
             }
             
@@ -681,12 +762,12 @@
         $('#confirm-winner-no').click(async function() {
             if (!pendingWinner) return;
             
-            console.log(`❌ Winner NOT PRESENT: ${pendingWinner.nama} (${pendingWinner.lucky_code})`);
+            console.log(`Winner NOT PRESENT: ${pendingWinner.nama} (${pendingWinner.lucky_code})`);
             console.log(`   is_winner already = 1, but NOT saved to winners table`);
             
             $('#winner-confirm-modal').addClass('hidden').removeClass('flex');
             
-            //alert(`⚠️ ${pendingWinner.nama} marked as NOT PRESENT.\nThey have been marked as winner (cannot win again) but not recorded in winners list.`);
+            //alert(`${pendingWinner.nama} marked as NOT PRESENT.\nThey have been marked as winner (cannot win again) but not recorded in winners list.`);
             
             pendingWinner = null;
             pendingStage = null;
@@ -695,13 +776,21 @@
         });
 
         async function emitToProjector(eventName, payload) {
-            if (!IS_TAURI) return;
-            try {
-                const { emit } = window.__TAURI__.event;
-                await emit(eventName, payload);
-                console.log(`[Tauri emit] ${eventName}`);
-            } catch (err) {
-                console.warn(`Failed to emit ${eventName}:`, err);
+            if (IS_TAURI) {
+                try {
+                    const { emit } = window.__TAURI__.event;
+                    await emit(eventName, payload);
+                    console.log(`[Tauri emit] ${eventName}`, payload);
+                } catch (err) {
+                    console.warn(`Failed to emit ${eventName}:`, err);
+                }
+            } else {
+                // Fallback untuk Mode Browser / Multi Window
+                window.postMessage({ type: eventName, ...payload }, '*');
+                
+                // Kirim event custom jika proyektor dibuka di tab/popup yang sama
+                const customEvent = new CustomEvent(eventName, { detail: payload });
+                window.dispatchEvent(customEvent);
             }
         }
 
@@ -797,20 +886,35 @@
             return null;
         }
 
-        // ========== EXPORT EXCEL FUNCTION ==========
-        
+        // ========== EXPORT EXCEL FUNCTION (FIXED SCOPE) ==========
         async function exportToExcel() {
             try {
-                // Tampilkan loading indicator
                 const exportBtn = $('#btn-export-excel');
                 const originalText = exportBtn.html();
                 exportBtn.html('<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div>').prop('disabled', true);
                 
-                // Ambil data dari database
                 const db = await getDatabase();
                 const stages = await getStages();
                 const prizes = await getPrizes();
                 
+                // Helper Format Tanggal & Waktu (DD-MM-YY HH:mm)
+                const formatDate = (dateObj) => {
+                    if (!dateObj || isNaN(new Date(dateObj))) return '-';
+                    const d = new Date(dateObj);
+                    const yy = String(d.getFullYear()).slice(-2);
+                    const mm = String(d.getMonth() + 1).padStart(2, '0');
+                    const dd = String(d.getDate()).padStart(2, '0');
+                    const hh = String(d.getHours()).padStart(2, '0');
+                    const min = String(d.getMinutes()).padStart(2, '0');
+                    return `${dd}-${mm}-${yy} ${hh}:${min}`;
+                };
+
+                // Helper Format Tipe Hadiah
+                const formatPrizeType = (rawType) => {
+                    if (!rawType) return '-';
+                    return rawType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                };
+
                 const winners = await new Promise((resolve, reject) => {
                     const tx = db.transaction(["winners", "attendances"], "readonly");
                     const winnersStore = tx.objectStore("winners");
@@ -822,30 +926,44 @@
                         const winnerRows = [];
                         
                         for (let i = 0; i < winnersData.length; i++) {
-                            const w = winnersData[i];
+                            const w = winnersData[i]; 
                             const attendanceReq = attendancesStore.get(w.attendance_id);
+                            
                             await new Promise((resolveAtt) => {
                                 attendanceReq.onsuccess = () => {
                                     const attendance = attendanceReq.result;
                                     
-                                    // Cari prize berdasarkan prize_id
-                                    const prize = prizes.find(p => p.id === w.prize_id);
+                                    // Cari prize (Bulk Draw) atau stage (Auto Draw)
+                                    const prize = prizes.find(p => String(p.id) === String(w.prize_id));
+                                    const stage = stages.find(s => String(s.id) === String(w.stage_id));
                                     
-                                    // Cari stage (untuk fallback)
-                                    const stage = stages.find(s => s.id === w.stage_id);
-                                    
+                                    // Format Harga
+                                    let priceVal = prize?.price || (stage?.prize_price ? `RM ${stage.prize_price.toLocaleString()}` : '-');
+
+                                    // Ambik Nomor Meja
+                                    const tableNumVal = attendance?.table_number || attendance?.table || attendance?.table_no || '-';
+
+                                    // Mengambil timestamp pengundian asli dari w.drawn_at
+                                    const drawnAtVal = formatDate(w.drawn_at);
+
+                                    // Mengambil timestamp update dari w.updated_at atau waktu saat ini
+                                    const updatedAtVal = formatDate(w.updated_at || w.drawn_at || new Date());
+
                                     winnerRows.push({
-                                        id: attendance?.id || '',
-                                        type: prize?.type || stage?.stage_name?.toLowerCase().replace(' ', '_') || 'unknown',
-                                        item_type: prize?.type?.replace('_prize', '') || 'product',
+                                        id: attendance?.id || w.attendance_id || '-',
                                         round: prize?.round || stage?.sequence || 1,
-                                        name: attendance?.nama || 'Unknown',
-                                        description: prize?.description || stage?.prize_name || '',
-                                        link: prize?.picture || '',
-                                        price: prize?.price || `RM ${prize?.prize_price || stage?.prize_price || 0}`,
-                                        picture: prize?.picture || '',
-                                        created_at: new Date(w.drawn_at).toLocaleString(),
-                                        updated_at: new Date().toLocaleString()
+                                        drawn_at: drawnAtVal,      
+                                        updated_at: updatedAtVal,  
+                                        winner_name: attendance?.nama || attendance?.name || 'Unknown',
+                                        winner_email: attendance?.email || '-',
+                                        lucky_number: attendance?.lucky_code || '-',
+                                        table_number: tableNumVal,
+                                        prize_name: prize?.name || stage?.prize_name || '-',
+                                        prize_type: formatPrizeType(prize?.type || stage?.stage_name),
+                                        prize_price: priceVal,
+                                        prize_link: prize?.link || '-',
+                                        prize_desc: prize?.description || stage?.prize_description || '-',
+                                        prize_picture: prize?.picture || '-'
                                     });
                                     resolveAtt();
                                 };
@@ -864,83 +982,93 @@
                     return;
                 }
                 
-                // Format Excel sesuai permintaan:
-                // ID | Type | Item Type | Round | Name | Description | Link | Price | Picture | Created At | Updated At
+                // Header Baris Excel
                 const excelData = [
-                    ['ID', 'Type', 'Item Type', 'Round', 'Name', 'Description', 'Link', 'Price', 'Picture', 'Created At', 'Updated At']
+                    [
+                        'ID', 
+                        'Round', 
+                        'Drawn At', 
+                        'Updated At', 
+                        'Winner Name', 
+                        'Winner Email', 
+                        'Lucky Number', 
+                        'Table Number', 
+                        'Prize Name', 
+                        'Prize Type', 
+                        'Prize Price', 
+                        'Prize Link', 
+                        'Prize Desc', 
+                        'Prize Picture'
+                    ]
                 ];
                 
-                winners.forEach(w => {
+                // Masukkan data ke array Excel
+                winners.forEach(row => {
                     excelData.push([
-                        w.id,
-                        w.type,
-                        w.item_type,
-                        w.round,
-                        w.name,
-                        w.description,
-                        w.link,
-                        w.price,
-                        w.picture,
-                        w.created_at,
-                        w.updated_at
+                        row.id,
+                        row.round,
+                        row.drawn_at,
+                        row.updated_at,
+                        row.winner_name,
+                        row.winner_email,
+                        row.lucky_number,
+                        row.table_number,
+                        row.prize_name,
+                        row.prize_type,
+                        row.prize_price,
+                        row.prize_link,
+                        row.prize_desc,
+                        row.prize_picture
                     ]);
                 });
                 
-                // Create worksheet
                 const ws = XLSX.utils.aoa_to_sheet(excelData);
                 
-                // Set column widths
+                // Atur Lebar Kolom
                 ws['!cols'] = [
-                    { wch: 30 }, // ID
-                    { wch: 20 }, // Type
-                    { wch: 15 }, // Item Type
-                    { wch: 10 }, // Round
-                    { wch: 30 }, // Name
-                    { wch: 35 }, // Description
-                    { wch: 40 }, // Link
-                    { wch: 15 }, // Price
-                    { wch: 40 }, // Picture
-                    { wch: 22 }, // Created At
-                    { wch: 22 }  // Updated At
+                    { wch: 18 }, // ID
+                    { wch: 8 },  // Round
+                    { wch: 16 }, // Drawn At
+                    { wch: 16 }, // Updated At
+                    { wch: 32 }, // Winner Name
+                    { wch: 30 }, // Winner Email
+                    { wch: 14 }, // Lucky Number
+                    { wch: 14 }, // Table Number
+                    { wch: 35 }, // Prize Name
+                    { wch: 16 }, // Prize Type
+                    { wch: 14 }, // Prize Price
+                    { wch: 20 }, // Prize Link
+                    { wch: 20 }, // Prize Desc
+                    { wch: 20 }  // Prize Picture
                 ];
                 
-                // Style header row (bold + background)
+                // Style Header Row
                 const range = XLSX.utils.decode_range(ws['!ref']);
                 for (let C = range.s.c; C <= range.e.c; ++C) {
                     const address = XLSX.utils.encode_cell({ r: 0, c: C });
                     if (!ws[address]) continue;
                     ws[address].s = {
-                        font: { bold: true, sz: 11 },
-                        fill: { fgColor: { rgb: "FFE4B5" } },
-                        alignment: { horizontal: "center" }
+                        font: { bold: true, sz: 10 },
+                        fill: { fgColor: { rgb: "F2F2F2" } },
+                        alignment: { horizontal: "left", vertical: "center" }
                     };
                 }
                 
-                // Create workbook and save
                 const wb = XLSX.utils.book_new();
                 XLSX.utils.book_append_sheet(wb, ws, 'Winners List');
                 
-                // Generate filename with current date
                 const now = new Date();
                 const filename = `Elite_Winners_${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}.xlsx`;
                 
-                // Save file
                 XLSX.writeFile(wb, filename);
                 
-                console.log(`Exported ${winners.length} winners to ${filename}`);
-                
-                // Reset button
                 exportBtn.html(originalText).prop('disabled', false);
-                
-                // Tampilkan custom modal
                 showExportSuccessModal(winners.length, filename);
                 
             } catch (err) {
                 console.error('Export failed:', err);
                 showCustomModal('Export Failed', 'Failed to export data: ' + err.message, 'error');
-                
-                // Reset button
-                $('#btn-export-excel').html('📊 Export Winners').prop('disabled', false);
+                $('#btn-export-excel').html('Export Winners').prop('disabled', false);
             }
         }
 
@@ -1085,6 +1213,7 @@
 
             $('#btn-bulk-draw').click(async function() {
                 await loadPrizesForBulk();
+                await loadTablesForBulk();
                 $('#bulk-draw-modal').removeClass('hidden').addClass('flex');
             });
 
@@ -1098,13 +1227,9 @@
                 }
             });
 
-            // Di lucky-draw-action.html pada $(document).ready()
             $('#bulk-execute').click(async function() {
-                // Ambil nilai raw tanpa parseInt agar UUID / String ID tetap utuh
-                const prizeIdRaw = $('#bulk-prize-select').val(); 
-                // Coba konversi ke integer jika nilainya berupa string angka murni
+                const prizeIdRaw = $('#bulk-prize-select').val();
                 const prizeId = !isNaN(prizeIdRaw) && prizeIdRaw.trim() !== '' ? parseInt(prizeIdRaw) : prizeIdRaw;
-                
                 const tableNumber = $('#bulk-table-number').val().trim();
                 const count = parseInt($('#bulk-count').val()) || 1;
                 
@@ -1119,68 +1244,98 @@
                 
                 if (!confirm(`Draw ${count} winner(s) from Table ${tableNumber} for selected prize?`)) return;
                 
+                const btn = $(this);
+                const originalText = btn.html();
+                btn.html('<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div> Processing...').prop('disabled', true);
+                
                 try {
-                    const result = await bulkRollByTable(prizeId, tableNumber, count);
-                    alert(`Success! ${result.winners.length} winner(s) selected from Table ${tableNumber} for "${result.prize.name}"`);
+                    // Cek jika proyektor belum terbuka, tanyakan untuk membuka window proyektor
+                    if (!projectorReady && !IS_TAURI) {
+                        projectorReady = true; // Set aktif untuk browser mode
+                    }
+                    
+                    // Eksekusi pengundian dengan efek animasi beruntun ke layar proyektor
+                    const result = await executeBulkDrawWithEffect(prizeId, tableNumber, count);
+                    
+                    alert(`Bulk Draw Success! ${result.winners.length} winner(s) drawn from Table ${tableNumber} for "${result.prize.name}"`);
                     $('#bulk-draw-modal').addClass('hidden').removeClass('flex');
                     await renderWinnerTable();
                     await renderStages();
+                    
                 } catch (err) {
-                    alert('Error: ' + err.message);
+                    alert('Bulk Draw Error: ' + err.message);
+                    console.error('Bulk draw error:', err);
+                } finally {
+                    btn.html(originalText).prop('disabled', false);
                 }
             });
         });
         
-        // Fungsi untuk mendapatkan peserta berdasarkan table (bulk draw)
-        async function getAttendeesByTable(tableNumber) {
-            const db = await getDatabase();
-            return new Promise((resolve, reject) => {
-                const tx = db.transaction(["attendances"], "readonly");
-                const store = tx.objectStore("attendances");
-                const index = store.index("table_number");
-                const request = index.getAll(tableNumber);
-                request.onsuccess = () => {
-                    resolve(request.result);
-                };
-                request.onerror = () => reject(request.error);
-                tx.oncomplete = () => db.close();
-            });
-        }
 
         // ========== SET WINNER FOR SPECIFIC PRIZE ==========
         async function setWinnerForPrize(prizeId, attendanceId) {
             const db = await getDatabase();
             return new Promise((resolve, reject) => {
-                const tx = db.transaction(["prizes", "attendances", "winners"], "readwrite");
+                const tx = db.transaction(["prizes", "attendances", "winners", "draw_stages"], "readwrite");
                 
-                // 1. Mark prize as drawn
                 const prizeStore = tx.objectStore("prizes");
-                const getPrize = prizeStore.get(prizeId);
-                getPrize.onsuccess = () => {
-                    const prize = getPrize.result;
-                    prize.is_drawn = 1;
-                    prizeStore.put(prize);
-                };
-                
-                // 2. Mark attendee as winner
                 const attendStore = tx.objectStore("attendances");
-                const getAttend = attendStore.get(attendanceId);
-                getAttend.onsuccess = () => {
-                    const att = getAttend.result;
-                    att.is_winner = 1;
-                    attendStore.put(att);
-                };
-                
-                // 3. Add to winners
                 const winnersStore = tx.objectStore("winners");
-                winnersStore.add({
-                    attendance_id: attendanceId,
-                    prize_id: prizeId,
-                    drawn_at: new Date().toISOString()
-                });
+                const stagesStore = tx.objectStore("draw_stages");
                 
-                tx.oncomplete = () => { db.close(); resolve(); };
-                tx.onerror = () => reject(tx.error);
+                let prizeObj = null;
+
+                const getPrizeReq = prizeStore.get(prizeId);
+                getPrizeReq.onsuccess = () => {
+                    prizeObj = getPrizeReq.result;
+                    if (prizeObj) {
+                        // Mark prize as drawn
+                        prizeObj.is_drawn = 1;
+                        prizeStore.put(prizeObj);
+
+                        // Update status `is_winner = 1` pada peserta
+                        const getAttendReq = attendStore.get(attendanceId);
+                        getAttendReq.onsuccess = () => {
+                            const att = getAttendReq.result;
+                            if (att) {
+                                att.is_winner = 1;
+                                attendStore.put(att);
+                            }
+                        };
+
+                        // Tambahkan record ke tabel winners
+                        // (Menyimpan stage_id yang sesuai dengan prize.round agar Auto Draw & Export sinkron)
+                        const stageIdToSave = prizeObj.round || null;
+                        winnersStore.add({
+                            attendance_id: attendanceId,
+                            prize_id: prizeId,
+                            stage_id: stageIdToSave,
+                            drawn_at: new Date().toISOString()
+                        });
+
+                        // Update `drawn_count` pada tabel `draw_stages` agar tampilan kartu ter-update!
+                        if (stageIdToSave) {
+                            const getStageReq = stagesStore.get(stageIdToSave);
+                            getStageReq.onsuccess = () => {
+                                const stage = getStageReq.result;
+                                if (stage) {
+                                    stage.drawn_count = (stage.drawn_count || 0) + 1;
+                                    stagesStore.put(stage);
+                                    console.log(`[Stage Sync] Stage ID ${stageIdToSave} drawn_count updated to ${stage.drawn_count}`);
+                                }
+                            };
+                        }
+                    }
+                };
+
+                tx.oncomplete = () => { 
+                    db.close(); 
+                    resolve(); 
+                };
+                tx.onerror = () => {
+                    db.close();
+                    reject(tx.error);
+                };
             });
         }
 
@@ -1258,6 +1413,247 @@
                 select.append(`<option value="${p.id}">${p.name} (${p.type}) - Round ${p.round}</option>`);
             });
         }
+
+        // ========== BULK DRAW DENGAN UPDATE KUOTA PROYEKTOR ==========
+        async function executeBulkDrawWithEffect(prizeId, tableNumber, count) {
+            const db = await getDatabase();
+            
+            // Dapatkan data prize
+            const prizes = await getPrizes();
+            const prize = prizes.find(p => String(p.id) === String(prizeId));
+            
+            if (!prize) throw new Error('Prize not found!');
+            if (prize.is_drawn) throw new Error('Prize already drawn!');
+            
+            // Dapatkan peserta berdasarkan meja
+            const attendees = await getAttendeesByTable(tableNumber);
+            const available = attendees.filter(a => a.is_winner === 0);
+            
+            if (available.length < count) {
+                throw new Error(`Only ${available.length} available attendees from table "${tableNumber}"`);
+            }
+            
+            // Acak dan pilih N pemenang sekaligus
+            const shuffled = available.sort(() => Math.random() - 0.5);
+            const selectedWinners = shuffled.slice(0, count);
+            
+            // Simpan seluruh pemenang ke database (ini akan meng-increment drawn_count)
+            for (const winner of selectedWinners) {
+                await setWinnerForPrize(prize.id, winner.id);
+            }
+
+            // Ambil data Stage terbaru yang sudah ter-update drawn_count-nya
+            const stages = await getStages();
+            const updatedStage = stages.find(s => String(s.id) === String(prize.round)) || {
+                quota: count,
+                drawn_count: count
+            };
+            
+            // ========== Format price dari prize.price (string "RM 679") ==========
+            const formattedPrice = formatPrizePrice(prize.price);
+            
+            // Data ringkasan untuk layar proyektor
+            const stageData = {
+                stage_name: `BULK DRAW - TABLE ${tableNumber}`,
+                prize_name: prize.name,
+                prize_description: prize.description || `Table ${tableNumber} • Total ${selectedWinners.length} Winners`,
+                type_label: (prize.type || 'BULK DRAW PRIZE').toUpperCase(),
+                prize_price: formattedPrice, 
+                quota: updatedStage.quota || count,
+                drawn_count: updatedStage.drawn_count || count
+            };
+
+            console.log('Bulk Draw stageData:', stageData); // Debug
+
+            // Minta proyektor memutar angka rolling
+            await emitToProjector('draw-start', { stage: stageData });
+            
+            // Durasi rolling
+            await new Promise(resolve => setTimeout(resolve, 2500));
+            
+            // Kirim event penghentian berisi SELURUH ARRAY PEMENANG + KUOTA TERBARU
+            await emitToProjector('draw-stop-bulk', {
+                winners: selectedWinners,
+                stage: stageData
+            });
+
+            // Kirim update stage
+            await emitToProjector('stage-update', { stage: stageData });
+            
+            return { prize, winners: selectedWinners };
+        }
+        // Function Populate Dropdown untuk Modal Preset Winner
+    async function loadDataForPresetModal() {
+        const prizes = await getPrizes();
+        const db = await getDatabase();
+        
+        // Fill Prizes Dropdown
+        const prizeSelect = $('#preset-prize-select');
+        prizeSelect.empty().append('<option value="">-- Select Prize --</option>');
+        prizes.filter(p => !p.is_drawn).forEach(p => {
+            prizeSelect.append(`<option value="${p.id}">${p.name} (${p.type}) - Round ${p.round}</option>`);
+        });
+
+        // Fill Unwon Attendees Dropdown
+        const attendees = await new Promise((resolve) => {
+            const tx = db.transaction(["attendances"], "readonly");
+            const store = tx.objectStore("attendances");
+            const index = store.index("is_winner");
+            const req = index.getAll(0);
+            req.onsuccess = () => resolve(req.result);
+            tx.oncomplete = () => db.close();
+        });
+
+        const attSelect = $('#preset-attendee-select');
+        attSelect.empty().append('<option value="">-- Select Winner --</option>');
+        attendees.forEach(a => {
+            attSelect.append(`<option value="${a.id}">${a.nama} [Code: ${a.lucky_code}] (Table: ${a.table_number || '-'})</option>`);
+        });
+    }
+
+
+    async function executePresetDraw(prizeId, attendanceId) {
+        const db = await getDatabase();
+        
+        // Get Prize Data
+        const prizes = await getPrizes();
+        const prize = prizes.find(p => String(p.id) === String(prizeId));
+        if (!prize) throw new Error("Prize not found!");
+
+        // Get Attendee Data
+        const attendance = await new Promise((resolve, reject) => {
+            const tx = db.transaction(["attendances"], "readonly");
+            const req = tx.objectStore("attendances").get(attendanceId);
+            req.onsuccess = () => resolve(req.result);
+            req.onerror = () => reject(req.error);
+            tx.oncomplete = () => db.close();
+        });
+
+        if (!attendance) throw new Error("Participant not found!");
+
+        // Simpan Pemenang ke Database TERLEBIH DAHULU agar kuota stage bertambah
+        await setWinnerForPrize(prize.id, attendance.id);
+
+        // Ambil data Stage terbaru yang sudah ter-update drawn_count-nya
+        const stages = await getStages();
+        const updatedStage = stages.find(s => String(s.id) === String(prize.round)) || {
+            quota: 1,
+            drawn_count: 1
+        };
+
+        // Format price dari prize.price (string "RM 679") ==========
+        const formattedPrice = formatPrizePrice(prize.price);
+
+        // Stage Data Lengkap untuk Proyektor
+        const stageData = {
+            stage_name: `ROUND ${prize.round || 1}`,
+            prize_name: prize.name,
+            prize_description: prize.description || 'Special Gala Dinner Prize',
+            type_label: (prize.type || 'LUCKY DRAW').toUpperCase(),
+            prize_price: formattedPrice,  
+            quota: updatedStage.quota || 1,
+            drawn_count: updatedStage.drawn_count || 1
+        };
+
+        console.log('📤 Preset Draw stageData:', stageData); // Debug
+
+        // Minta proyektor rolling animasi angka acak selama 3.5 detik
+        await emitToProjector('draw-start', { stage: stageData });
+        
+        // Tunggu animasi rolling
+        await new Promise(resolve => setTimeout(resolve, 3500));
+        
+        // Stop rolling dan tampilkan PEMENANG PRESET + UPDATE TAMPILAN KUOTA PROYEKTOR
+        await emitToProjector('draw-stop', {
+            winner: attendance,
+            stage: stageData
+        });
+
+        // Kirim sinyal khusus update stage ke proyektor
+        await emitToProjector('stage-update', { stage: stageData });
+        
+        return { prize, winner: attendance };
+    }
+
+    // Event Listeners pada $(document).ready
+    $(document).ready(function() {
+        // Open Preset Modal
+        $('#btn-preset-draw').click(async function() {
+            await loadDataForPresetModal();
+            $('#preset-draw-modal').removeClass('hidden').addClass('flex');
+        });
+
+        // Close Modal
+        $('#preset-close').click(function() {
+            $('#preset-draw-modal').addClass('hidden').removeClass('flex');
+        });
+
+        // Execute Preset Draw
+        $('#preset-execute').click(async function() {
+            const prizeIdRaw = $('#preset-prize-select').val();
+            const prizeId = !isNaN(prizeIdRaw) && prizeIdRaw.trim() !== '' ? parseInt(prizeIdRaw) : prizeIdRaw;
+            const attendanceId = $('#preset-attendee-select').val();
+
+            if (!prizeId) { alert("Please select a prize!"); return; }
+            if (!attendanceId) { alert("Please select a participant!"); return; }
+
+            if (!confirm("Start stage animation for this fixed winner?")) return;
+
+            const btn = $(this);
+            const origText = btn.html();
+            btn.html('<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div> Processing...').prop('disabled', true);
+
+            try {
+                const res = await executePresetDraw(prizeId, attendanceId);
+                alert(`Preset Winner Success! Winner: ${res.winner.nama} (${res.winner.lucky_code}) for "${res.prize.name}"`);
+                $('#preset-draw-modal').addClass('hidden').removeClass('flex');
+                await renderWinnerTable();
+                await renderStages();
+            } catch (err) {
+                alert("Error: " + err.message);
+            } finally {
+                btn.html(origText).prop('disabled', false);
+            }
+        });
+    });
+
+    // Fungsi mengekstraksi daftar meja unik dari database
+    async function loadTablesForBulk() {
+        const db = await getDatabase();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction(["attendances"], "readonly");
+            const store = tx.objectStore("attendances");
+            const request = store.getAll();
+            
+            request.onsuccess = () => {
+                const attendees = request.result;
+                
+                const tables = [...new Set(attendees
+                    .map(a => a.table_number ? String(a.table_number).trim() : '')
+                    .filter(t => t !== '')
+                )];
+
+                tables.sort((a, b) => {
+                    const numA = parseInt(a.replace(/[^0-9]/g, '')) || 0;
+                    const numB = parseInt(b.replace(/[^0-9]/g, '')) || 0;
+                    return numA - numB;
+                });
+
+                const select = $('#bulk-table-number');
+                select.empty().append('<option value="">-- Select Table --</option>');
+                
+                tables.forEach(table => {
+                    select.append(`<option value="${table}">${table}</option>`);
+                });
+
+                resolve(tables);
+            };
+            
+            request.onerror = () => reject(request.error);
+            tx.oncomplete = () => db.close();
+        });
+    }
+
     </script>
 </body>
 </html>

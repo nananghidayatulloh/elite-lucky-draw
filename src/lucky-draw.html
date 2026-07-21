@@ -147,9 +147,13 @@
         <div class="ld-prize-modal-card p-0 text-stone-900 relative overflow-hidden">
             <div class="p-6 md:p-8 flex flex-col justify-center items-center text-center relative z-10">
                 <div class="ld-prize-winner-block w-full">
+                    <!-- Header: Stage Name -->
                     <p class="text-xs font-extrabold tracking-widest text-amber-800 uppercase" id="modal-stage">✨ WINNER ✨</p>
+                    
+                    <!-- Winner Name -->
                     <p class="text-2xl font-black text-stone-900 mt-2 tracking-tight overflow-hidden text-ellipsis line-clamp-2" id="modal-name">Attendee Name</p>
                     
+                    <!-- Watermark Lucky Code -->
                     <div class="ld-prize-watermark" aria-hidden="true" id="modal-watermark-digits">
                         <span class="ld-prize-watermark-digit">0</span>
                         <span class="ld-prize-watermark-digit">0</span>
@@ -158,23 +162,31 @@
                     </div>
                 </div>
 
+                <!-- Prize Info Section -->
                 <div class="w-full mt-4 pt-4 border-t border-amber-900/15 flex flex-col items-center">
-                    <p class="text-lg font-black text-amber-950" id="modal-prize">Prize Name</p>
-                    <p class="text-xs font-semibold text-stone-500 mt-0.5" id="modal-prize-desc">Prize Description</p>
+                    <!-- Nama Prize (Utama) -->
+                    <p class="text-xl md:text-2xl font-black text-amber-950" id="modal-prize">Prize Name</p>
                     
+                    <!-- Deskripsi / Type (Di bawah nama prize) -->
+                    <p class="text-xs font-semibold text-stone-500 mt-0.5" id="modal-prize-desc">Prize Description / Type</p>
+                    
+                    <!-- Badge Type (Di bawah deskripsi) -->
                     <div class="mt-3 inline-flex bg-amber-100 border border-amber-900/10 rounded-full px-4 py-1">
                         <span class="text-xs font-extrabold uppercase tracking-wider text-amber-900" id="modal-prize-type">LUCKY DRAW PRIZE</span>
                     </div>
                 </div>
 
+                <!-- Prize Value -->
                 <div class="w-full mt-4 bg-white/75 border border-amber-900/10 rounded-2xl p-3.5 shadow-inner backdrop-blur-md">
                     <p class="text-xs font-bold uppercase tracking-wider text-amber-800/80">Prize Value</p>
                     <p class="text-2xl font-black text-stone-900 tracking-tight mt-0.5" id="modal-price">RM0</p>
                 </div>
                 
+                <!-- Close button optional -->
                 <!-- <button type="button" class="mt-6 w-full bg-stone-900 hover:bg-stone-800 text-white rounded-xl py-3.5 font-bold text-sm tracking-wide shadow-md transition-colors" id="close-modal-btn">CLOSE</button> -->
             </div>
         </div>
+
     </div>
 
     <script src="assets/db-config.js"></script>
@@ -315,23 +327,20 @@
             }
         }
 
-        // ========== SINKRONISASI ALGORITMA: Generator Confetti Sesuai Data Array di Laravel Blade ==========
+        // ========== CONFETTI GENERATOR ==========
         function triggerModalCelebration() {
             const burstContainer = $('#modal-burst-container');
             burstContainer.empty(); 
 
-            // Warna dasar array penentu bawaan generator sistem blade panggung
             const colors = ['#fde047', '#f472b6', '#22d3ee', '#a3e635', '#c4b5fd', '#fb923c', '#f8fafc', '#38bdf8'];
-            
-            // Loop total item generator tiruan array penentu bawaan server side
             const totalBurstItems = 40; 
+            
             for (let i = 0; i < totalBurstItems; i++) {
-                // Formula kalkulasi atribut persis parameter array modalConfettiBurst di display.blade.php
-                const randomAngle = Math.floor(Math.random() * 360); // Atribut r
-                const randomDelay = (Math.random() * 0.5).toFixed(2); // Atribut del
-                const randomDuration = (1.5 + Math.random() * 1.5).toFixed(2); // Atribut dur
-                const randomSize = Math.floor(Math.random() * 10) + 12; // Atribut s
-                const randomColor = colors[Math.floor(Math.random() * colors.length)]; // Atribut c
+                const randomAngle = Math.floor(Math.random() * 360);
+                const randomDelay = (Math.random() * 0.5).toFixed(2);
+                const randomDuration = (1.5 + Math.random() * 1.5).toFixed(2);
+                const randomSize = Math.floor(Math.random() * 10) + 12;
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
 
                 const particleArm = `
                     <div class="ld-modal-confetti-arm" style="--ld-br: ${randomAngle}deg;">
@@ -347,6 +356,7 @@
             }
         }
 
+        // ========== ROLLING FUNCTIONS ==========
         function startRolling(stage) {
             updateStageDisplay(stage);
             $('#winner-modal').css('display', 'none');
@@ -369,47 +379,79 @@
             updateConnectionStatus(true);
         }
 
-        function stopRolling(winner, stage) {
-            if (rollInterval) { clearInterval(rollInterval); rollInterval = null; }
-            
-            $('#digit-root').removeClass('ld-digit-frame--rolling').attr('data-rolling', '0');
-            
-            if (audioDraw) {
-                audioDraw.pause();
-                audioDraw.currentTime = 0;
-            }
-
-            const code = winner.lucky_code;
-            $('#box-1').text(code[0] || '0');
-            $('#box-2').text(code[1] || '0');
-            $('#box-3').text(code[2] || '0');
-            $('#box-4').text(code[3] || '0');
-
-            if (stage) updateStageDisplay(stage);
-
-            setTimeout(function() {
-                $('#modal-stage').text((stage?.stage_name || 'LUCKY WINNER').toUpperCase());
-                $('#modal-prize').text(stage?.prize_name || 'Special Prize');
-                $('#modal-prize-desc').text(stage?.prize_description || 'Achi Jaya 2026 Celebration');
-                $('#modal-prize-type').text(stage?.type_label || 'LUCKY DRAW PRIZE');
-                $('#modal-price').text(stage?.prize_price ? `RM ${stage.prize_price.toLocaleString()}` : 'RM -');
-                $('#modal-name').text(winner.nama);
-                
-                let watermarkContainer = $('#modal-watermark-digits');
-                watermarkContainer.empty();
-                for (let i = 0; i < code.length; i++) {
-                    watermarkContainer.append(`<span class="ld-prize-watermark-digit">${code[i]}</span>`);
-                }
-                
-                $('#winner-modal').css('display', 'flex');
-                triggerModalCelebration(); 
-                
-                if (audioWinner) {
-                    audioWinner.currentTime = 0;
-                    audioWinner.play().catch(() => console.log('Winner audio play failed.'));
-                }
-            }, 400);
+    function stopRolling(winner, stage) {
+        if (rollInterval) { clearInterval(rollInterval); rollInterval = null; }
+        
+        $('#digit-root').removeClass('ld-digit-frame--rolling').attr('data-rolling', '0');
+        
+        if (audioDraw) {
+            audioDraw.pause();
+            audioDraw.currentTime = 0;
         }
+
+        const code = winner.lucky_code;
+        $('#box-1').text(code[0] || '0');
+        $('#box-2').text(code[1] || '0');
+        $('#box-3').text(code[2] || '0');
+        $('#box-4').text(code[3] || '0');
+
+        if (stage) updateStageDisplay(stage);
+
+        setTimeout(function() {
+            // ========== Tampilkan Nama Prize ==========
+            const stageName = stage?.stage_name || 'LUCKY WINNER';
+            const prizeName = stage?.prize_name || 'Special Prize';
+            const prizeDesc = stage?.prize_description || 'Achi Jaya 2026 Celebration';
+            const prizeType = stage?.type_label || 'LUCKY DRAW PRIZE';
+            
+            // Format price
+            let priceDisplay = 'RM -';
+            if (stage?.prize_price) {
+                if (typeof stage.prize_price === 'string' && stage.prize_price.startsWith('RM')) {
+                    priceDisplay = stage.prize_price;
+                } else if (typeof stage.prize_price === 'number') {
+                    priceDisplay = `RM ${stage.prize_price.toLocaleString()}`;
+                } else if (typeof stage.prize_price === 'string' && !isNaN(parseFloat(stage.prize_price))) {
+                    priceDisplay = `RM ${parseFloat(stage.prize_price).toLocaleString()}`;
+                } else {
+                    priceDisplay = String(stage.prize_price);
+                }
+            }
+            
+            // Tampilkan Stage Name sebagai header
+            $('#modal-stage').text(stageName.toUpperCase());
+            
+            // Tampilkan Nama Prize dengan jelas (bukan type)
+            $('#modal-prize').text(prizeName);
+            
+            // Tampilkan deskripsi / type di bawahnya
+            $('#modal-prize-desc').text(prizeDesc || prizeType);
+            
+            // Tampilkan Type di badge
+            $('#modal-prize-type').text(prizeType);
+            
+            // Tampilkan Price
+            $('#modal-price').text(priceDisplay);
+            
+            // Tampilkan Nama Winner
+            $('#modal-name').text(winner.nama);
+            
+            // Watermark digits
+            let watermarkContainer = $('#modal-watermark-digits');
+            watermarkContainer.empty();
+            for (let i = 0; i < code.length; i++) {
+                watermarkContainer.append(`<span class="ld-prize-watermark-digit">${code[i]}</span>`);
+            }
+            
+            $('#winner-modal').css('display', 'flex');
+            triggerModalCelebration(); 
+            
+            if (audioWinner) {
+                audioWinner.currentTime = 0;
+                audioWinner.play().catch(() => console.log('Winner audio play failed.'));
+            }
+        }, 400);
+    }
 
         function showIdleState() {
             if (rollInterval) { clearInterval(rollInterval); rollInterval = null; }
@@ -432,6 +474,143 @@
             }
         }
 
+        // ========== BULK DRAW HANDLERS ==========
+        function handleBulkDrawStart(payload) {
+            const prize = payload.prize;
+            
+            $('#prize-name-display').text(prize.name);
+            $('#remaining-display').text(`🎯 Bulk Draw - Table ${payload.table} (${payload.current}/${payload.total})`);
+            $('#prize-price-display').html(`💰 ${prize.price}`);
+            $('#stage-badge').html(`🎯 Bulk Draw: ${prize.name} | Table ${payload.table}`);
+            
+            startRolling({
+                prize_name: prize.name,
+                stage_name: `Bulk Draw - Table ${payload.table}`,
+                prize_price: parseInt(prize.price.replace(/[^0-9]/g, '')) || 0
+            });
+        }
+
+    function handleBulkDrawStop(payload) {
+        const winner = payload.winner;
+        const prize = payload.prize;
+        
+        if (rollInterval) { 
+            clearInterval(rollInterval); 
+            rollInterval = null; 
+        }
+        
+        $('#digit-root').removeClass('ld-digit-frame--rolling').attr('data-rolling', '0');
+        
+        if (audioDraw) {
+            audioDraw.pause();
+            audioDraw.currentTime = 0;
+        }
+        
+        const code = winner.lucky_code;
+        $('#box-1').text(code[0] || '0');
+        $('#box-2').text(code[1] || '0');
+        $('#box-3').text(code[2] || '0');
+        $('#box-4').text(code[3] || '0');
+        
+        setTimeout(function() {
+            // ========== Tampilkan Nama Prize dengan jelas ==========
+            const stageName = `BULK DRAW (${payload.current}/${payload.total})`;
+            const prizeName = prize.name || 'Prize';
+            const prizeDesc = `Table ${payload.table} • ${prize.type || 'Prize'}`;
+            const prizeType = (prize.type || 'LUCKY DRAW').toUpperCase();
+            
+            // Format price
+            let priceDisplay = 'RM -';
+            if (prize.price) {
+                if (typeof prize.price === 'string' && prize.price.startsWith('RM')) {
+                    priceDisplay = prize.price;
+                } else if (typeof prize.price === 'number') {
+                    priceDisplay = `RM ${prize.price.toLocaleString()}`;
+                } else if (typeof prize.price === 'string' && !isNaN(parseFloat(prize.price))) {
+                    priceDisplay = `RM ${parseFloat(prize.price).toLocaleString()}`;
+                } else {
+                    priceDisplay = String(prize.price);
+                }
+            }
+            
+            $('#modal-stage').text(stageName);
+            $('#modal-prize').text(prizeName);
+            $('#modal-prize-desc').text(prizeDesc);
+            $('#modal-prize-type').text(prizeType);
+            $('#modal-price').text(priceDisplay);
+            $('#modal-name').text(winner.nama);
+            
+            let watermarkContainer = $('#modal-watermark-digits');
+            watermarkContainer.empty();
+            for (let i = 0; i < code.length; i++) {
+                watermarkContainer.append(`<span class="ld-prize-watermark-digit">${code[i]}</span>`);
+            }
+            
+            $('#winner-modal').css('display', 'flex');
+            triggerModalCelebration();
+            
+            if (audioWinner) {
+                audioWinner.currentTime = 0;
+                audioWinner.play().catch(() => console.log('Winner audio play failed.'));
+            }
+        }, 400);
+        
+        $('#remaining-display').text(`Bulk Draw - Table ${payload.table} (${payload.current}/${payload.total}) - Winner: ${winner.nama}`);
+    }
+
+    function handleBulkDrawComplete(payload) {
+        const winnerNames = payload.winnerNames || [];
+        
+        setTimeout(function() {
+            // ========== Tampilkan Nama Prize dengan jelas ==========
+            const prizeName = payload.prize.name || 'Prize';
+            const prizeDesc = `Table ${payload.table} • ${payload.count} Winners`;
+            
+            // Format price
+            let priceDisplay = 'RM -';
+            if (payload.prize.price) {
+                if (typeof payload.prize.price === 'string' && payload.prize.price.startsWith('RM')) {
+                    priceDisplay = payload.prize.price;
+                } else if (typeof payload.prize.price === 'number') {
+                    priceDisplay = `RM ${payload.prize.price.toLocaleString()}`;
+                } else if (typeof payload.prize.price === 'string' && !isNaN(parseFloat(payload.prize.price))) {
+                    priceDisplay = `RM ${parseFloat(payload.prize.price).toLocaleString()}`;
+                } else {
+                    priceDisplay = String(payload.prize.price);
+                }
+            }
+            
+            $('#modal-stage').text('🎉 BULK DRAW COMPLETE! 🎉');
+            $('#modal-prize').text(prizeName);
+            $('#modal-prize-desc').text(prizeDesc);
+            $('#modal-prize-type').text('ALL WINNERS');
+            $('#modal-price').text(priceDisplay);
+            
+            const namesHtml = winnerNames.map((name, idx) => 
+                `<span class="inline-block bg-amber-100 text-amber-900 px-3 py-1 rounded-full text-sm font-bold m-1">${idx+1}. ${name}</span>`
+            ).join(' ');
+            
+            $('#modal-name').html(`
+                <div class="flex flex-wrap justify-center gap-1 max-h-40 overflow-y-auto p-2 bg-white/30 rounded-xl">
+                    ${namesHtml}
+                </div>
+            `);
+            
+            let watermarkContainer = $('#modal-watermark-digits');
+            watermarkContainer.empty();
+            watermarkContainer.html(`<span class="ld-prize-watermark-digit" style="font-size: clamp(2rem, 8vw, 3rem);">${payload.count}🏆</span>`);
+            
+            $('#winner-modal').css('display', 'flex');
+            triggerModalCelebration();
+            
+            if (audioWinner) {
+                audioWinner.currentTime = 0;
+                audioWinner.play().catch(() => console.log('Winner audio play failed.'));
+            }
+        }, 1000);
+    }
+
+        // ========== SETUP EVENT LISTENERS ==========
         async function setupEventListeners() {
             if (IS_TAURI) {
                 const { listen } = window.__TAURI__.event;
@@ -444,6 +623,11 @@
 
                 await listen('draw-stop', function(event) {
                     stopRolling(event.payload.winner, event.payload.stage);
+                    lastHeartbeat = Date.now();
+                });
+
+                await listen('draw-stop-bulk', function(event) {
+                    stopRollingBulk(event.payload.winners, event.payload.stage);
                     lastHeartbeat = Date.now();
                 });
 
@@ -460,42 +644,22 @@
                 updateConnectionStatus(true);
 
             } else {
-                // Browser mode
-                window.addEventListener('draw-start', function(e) {
-                    startRolling(e.detail.stage);
-                });
-                window.addEventListener('draw-stop', function(e) {
-                    stopRolling(e.detail.winner, e.detail.stage);
-                });
-                window.addEventListener('stage-update', function(e) {
-                    updateStageDisplay(e.detail.stage);
-                });
-                window.addEventListener('heartbeat', function() {
-                    lastHeartbeat = Date.now();
-                    updateConnectionStatus(true);
-                });
-
+                // Mode Browser (Development)
+                window.addEventListener('draw-start', function(e) { startRolling(e.detail.stage); });
+                window.addEventListener('draw-stop', function(e) { stopRolling(e.detail.winner, e.detail.stage); });
+                window.addEventListener('draw-stop-bulk', function(e) { stopRollingBulk(e.detail.winners, e.detail.stage); });
+                
                 window.addEventListener('message', function(e) {
                     const data = e.data;
                     if (!data || !data.type) return;
                     if (data.type === 'draw-start') startRolling(data.stage);
                     if (data.type === 'draw-stop') stopRolling(data.winner, data.stage);
-                    if (data.type === 'stage-update') updateStageDisplay(data.stage);
-                    if (data.type === 'heartbeat') {
-                        lastHeartbeat = Date.now();
-                        updateConnectionStatus(true);
-                    }
+                    if (data.type === 'draw-stop-bulk') stopRollingBulk(data.winners, data.stage);
                 });
-
-                if (window.opener) {
-                    try {
-                        window.opener.postMessage({ type: 'projector-ready' }, '*');
-                        updateConnectionStatus(true);
-                    } catch(e) {}
-                }
             }
         }
 
+        // ========== INIT ==========
         $(document).ready(async function() {
             initAudio();
             
@@ -503,6 +667,7 @@
                 $('#winner-modal').css('display', 'none');
                 $('#modal-burst-container').empty(); 
             });
+            
             $('#winner-modal').click(function(e) {
                 if (e.target === this) {
                     $(this).css('display', 'none');
@@ -513,6 +678,7 @@
             await loadInitialStage();
             await setupEventListeners();
 
+            // Heartbeat checker
             setInterval(function() {
                 if (Date.now() - lastHeartbeat > 5000) {
                     updateConnectionStatus(false);
@@ -521,6 +687,95 @@
 
             showIdleState();
         });
+
+    function stopRollingBulk(winners, stage) {
+        if (rollInterval) { clearInterval(rollInterval); rollInterval = null; }
+        
+        $('#digit-root').removeClass('ld-digit-frame--rolling').attr('data-rolling', '0');
+        
+        if (audioDraw) {
+            audioDraw.pause();
+            audioDraw.currentTime = 0;
+        }
+
+        // Set tampilan slot angka menjadi tulisan "BULK"
+        $('#box-1').text('B');
+        $('#box-2').text('U');
+        $('#box-3').text('L');
+        $('#box-4').text('K');
+
+        if (stage) updateStageDisplay(stage);
+
+        setTimeout(function() {
+            // ========== PERBAIKAN: Tampilkan Nama Prize dengan jelas ==========
+            const stageName = stage?.stage_name || 'BULK WINNERS';
+            const prizeName = stage?.prize_name || 'Special Prize';
+            const prizeDesc = stage?.prize_description || 'Bulk Draw Result';
+            const prizeType = stage?.type_label || 'BULK DRAW';
+            
+            // Format price
+            let priceDisplay = 'RM -';
+            if (stage?.prize_price) {
+                if (typeof stage.prize_price === 'string' && stage.prize_price.startsWith('RM')) {
+                    priceDisplay = stage.prize_price;
+                } else if (typeof stage.prize_price === 'number') {
+                    priceDisplay = `RM ${stage.prize_price.toLocaleString()}`;
+                } else if (typeof stage.prize_price === 'string' && !isNaN(parseFloat(stage.prize_price))) {
+                    priceDisplay = `RM ${parseFloat(stage.prize_price).toLocaleString()}`;
+                } else {
+                    priceDisplay = String(stage.prize_price);
+                }
+            }
+            
+            $('#modal-stage').text(stageName.toUpperCase());
+            $('#modal-prize').text(prizeName);
+            $('#modal-prize-desc').text(prizeDesc);
+            $('#modal-prize-type').text(prizeType);
+            $('#modal-price').text(priceDisplay);
+            
+            // Sembunyikan watermark digit 4 kotak besar bawaan single winner
+            $('#modal-watermark-digits').html('');
+
+            // Susun baris tabel pemenang
+            let rowsHtml = winners.map((w, idx) => `
+                <tr class="border-b border-amber-900/10 hover:bg-amber-50/50 transition-colors text-left text-xs sm:text-sm">
+                    <td class="py-2 px-3 font-bold text-amber-800 text-center">${idx + 1}</td>
+                    <td class="py-2 px-3 font-extrabold text-stone-900 truncate max-w-[14rem]">${w.nama}</td>
+                    <td class="py-2 px-3 font-mono font-bold text-amber-700 text-center">${w.lucky_code}</td>
+                </tr>
+            `).join('');
+
+            // Format HTML Tabel Modal
+            const tableHtml = `
+                <div class="w-full mt-2 max-h-56 overflow-y-auto rounded-xl border border-amber-900/15 bg-white/80 shadow-inner">
+                    <table class="w-full">
+                        <thead class="sticky top-0 bg-amber-200 text-amber-950 text-xs font-black uppercase tracking-wider">
+                            <tr>
+                                <th class="py-2 px-3 text-center">No</th>
+                                <th class="py-2 px-3 text-left">Winner Name</th>
+                                <th class="py-2 px-3 text-center">Code</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${rowsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+
+            // Masukkan tabel ke kontainer nama modal
+            $('#modal-name').html(tableHtml);
+            
+            $('#winner-modal').css('display', 'flex');
+            triggerModalCelebration(); 
+            
+            if (audioWinner) {
+                audioWinner.currentTime = 0;
+                audioWinner.play().catch(() => console.log('Winner audio play failed.'));
+            }
+        }, 400);
+    }
+
     </script>
 </body>
 </html>
