@@ -1,6 +1,6 @@
 // assets/db-config.js
 const DB_NAME = "EliteLuckyDrawDB";
-const CURRENT_VERSION = 18;
+const CURRENT_VERSION = 23; 
 
 // Data default stages
 const DEFAULT_STAGES = [
@@ -21,7 +21,8 @@ async function isDatabaseExists() {
                            db.objectStoreNames.contains("draw_stages") || 
                            db.objectStoreNames.contains("winners") ||
                            db.objectStoreNames.contains("prizes") ||
-                           db.objectStoreNames.contains("bulk_draws");
+                           db.objectStoreNames.contains("bulk_draws") ||
+                           db.objectStoreNames.contains("standalone_preset");
             db.close();
             resolve(exists);
         };
@@ -54,11 +55,9 @@ async function initDatabase() {
         request.onsuccess = (event) => {
             const db = event.target.result;
             
-            // Cek apakah tabel critical (seperti 'prizes') benar-benar ada
             if (!db.objectStoreNames.contains("prizes")) {
                 console.warn("[DB] Tabel 'prizes' tidak ditemukan. Memaksa reset database...");
                 db.close();
-                // Hapus DB korup dan buat ulang secara bersih
                 const deleteReq = indexedDB.deleteDatabase(DB_NAME);
                 deleteReq.onsuccess = () => {
                     initDatabase().then(resolve).catch(reject);
@@ -67,21 +66,22 @@ async function initDatabase() {
             }
             
             console.log(`[DB] Opened successfully with version ${db.version}`);
+            console.log('[DB] Stores:', Array.from(db.objectStoreNames));
             db.close();
             resolve(true);
         };
         
-        // Event ini dipicu jika CURRENT_VERSION dinaikkan atau DB baru pertama kali dibuat
         request.onupgradeneeded = (event) => {
             const db = event.target.result;
             console.log(`[DB] Upgrading schema to version ${CURRENT_VERSION}...`);
             
-            // Re-create object stores (Clean Upgrade)
+            // Hapus semua store lama
             if (db.objectStoreNames.contains("attendances")) db.deleteObjectStore("attendances");
             if (db.objectStoreNames.contains("winners")) db.deleteObjectStore("winners");
             if (db.objectStoreNames.contains("draw_stages")) db.deleteObjectStore("draw_stages");
             if (db.objectStoreNames.contains("prizes")) db.deleteObjectStore("prizes");
             if (db.objectStoreNames.contains("bulk_draws")) db.deleteObjectStore("bulk_draws");
+            if (db.objectStoreNames.contains("standalone_preset")) db.deleteObjectStore("standalone_preset");
             
             // 1. Attendances
             const attendancesStore = db.createObjectStore("attendances", { keyPath: "id" });
@@ -102,7 +102,7 @@ async function initDatabase() {
             const drawStagesStore = db.createObjectStore("draw_stages", { keyPath: "id" });
             DEFAULT_STAGES.forEach(stage => drawStagesStore.add(stage));
             
-            // 4. Prizes (TAMBAHAN UTAMA)
+            // 4. Prizes
             const prizesStore = db.createObjectStore("prizes", { keyPath: "id" });
             prizesStore.createIndex("type", "type", { unique: false });
             prizesStore.createIndex("round", "round", { unique: false });
@@ -113,6 +113,15 @@ async function initDatabase() {
             bulkDrawsStore.createIndex("prize_id", "prize_id", { unique: false });
             bulkDrawsStore.createIndex("table_number", "table_number", { unique: false });
             bulkDrawsStore.createIndex("drawn_at", "drawn_at", { unique: false });
+
+            // 6. STANDALONE PRESET 
+            console.log('[DB] Creating standalone_preset store...');
+            const standalonePresetStore = db.createObjectStore("standalone_preset", { keyPath: "id" });
+            standalonePresetStore.createIndex("round", "round", { unique: false });
+            standalonePresetStore.createIndex("prize_name", "prize_name", { unique: false });
+            standalonePresetStore.createIndex("status", "status", { unique: false });
+            standalonePresetStore.createIndex("lucky_number", "lucky_number", { unique: false });
+            console.log('[DB] standalone_preset store created successfully');
         };
     });
 }
@@ -166,7 +175,6 @@ async function getAllWinners() {
 async function getPrizes() {
     const db = await getDatabase();
     return new Promise((resolve, reject) => {
-        // Cek apakah store prizes ada
         if (!db.objectStoreNames.contains("prizes")) {
             reject(new Error('Store "prizes" not found! Please upgrade database.'));
             return;
@@ -222,6 +230,104 @@ async function resetDatabase() {
     });
 }
 
+// ========== FUNGSI STANDALONE PRESET ==========
+async function getStandalonePresets() {
+    const db = await getDatabase();
+    if (!db.objectStoreNames.contains("standalone_preset")) {
+        console.warn('[DB] Store "standalone_preset" not found');
+        db.close();
+        return [];
+    }
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(["standalone_preset"], "readonly");
+        const store = tx.objectStore("standalone_preset");
+        const request = store.getAll();
+        request.onsuccess = () => {
+            console.log('[DB] Retrieved', request.result.length, 'standalone presets');
+            resolve(request.result);
+        };
+        request.onerror = () => {
+            console.error('[DB] Error getting presets:', request.error);
+            reject(request.error);
+        };
+        tx.oncomplete = () => db.close();
+    });
+}
+
+async function saveStandalonePreset(data) {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, CURRENT_VERSION);
+        
+        request.onsuccess = function(event) {
+            const db = event.target.result;
+            
+            console.log('[DB] Available stores:', Array.from(db.objectStoreNames));
+            
+            if (!db.objectStoreNames.contains("standalone_preset")) {
+                console.error('[DB] Store "standalone_preset" NOT FOUND!');
+                db.close();
+                reject(new Error('Standalone preset store not found. Please refresh the page.'));
+                return;
+            }
+            
+            const tx = db.transaction(["standalone_preset"], "readwrite");
+            const store = tx.objectStore("standalone_preset");
+            const addRequest = store.add(data);
+            
+            addRequest.onsuccess = () => {
+                console.log('[DB] Saved standalone preset:', data.winner_name);
+                resolve();
+            };
+            
+            addRequest.onerror = () => {
+                console.error('[DB] Save error:', addRequest.error);
+                reject(addRequest.error);
+            };
+            
+            tx.oncomplete = () => {
+                db.close();
+            };
+            
+            tx.onerror = () => {
+                console.error('[DB] Transaction error:', tx.error);
+                db.close();
+                reject(tx.error);
+            };
+        };
+        
+        request.onerror = function(event) {
+            console.error('[DB] Open error:', event.target.error);
+            reject(event.target.error);
+        };
+    });
+}
+
+async function updateStandalonePresetStatus(id, status, replacementData = null) {
+    const db = await getDatabase();
+    if (!db.objectStoreNames.contains("standalone_preset")) {
+        return;
+    }
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(["standalone_preset"], "readwrite");
+        const store = tx.objectStore("standalone_preset");
+        const getRequest = store.get(id);
+        getRequest.onsuccess = () => {
+            const data = getRequest.result;
+            data.status = status;
+            data.updated_at = new Date().toISOString();
+            if (replacementData) {
+                data.replacement_name = replacementData.winner_name;
+                data.replacement_lucky = replacementData.lucky_number;
+                data.replacement_email = replacementData.winner_email || '';
+                data.replacement_table = replacementData.table_number || '';
+            }
+            store.put(data);
+            tx.oncomplete = () => { db.close(); resolve(); };
+        };
+        getRequest.onerror = () => { db.close(); reject(getRequest.error); };
+    });
+}
+
 // ========== EKSPORT KE GLOBAL ==========
 window.DB_NAME = DB_NAME;
 window.DB_VERSION = CURRENT_VERSION;
@@ -237,3 +343,8 @@ window.getFirstAvailableStage = getFirstAvailableStage;
 window.resetDatabase = resetDatabase;
 window.isDatabaseExists = isDatabaseExists;
 window.getCurrentDatabaseVersion = getCurrentDatabaseVersion;
+window.getStandalonePresets = getStandalonePresets;
+window.saveStandalonePreset = saveStandalonePreset;
+window.updateStandalonePresetStatus = updateStandalonePresetStatus;
+
+console.log('[DB] Config loaded with version', CURRENT_VERSION);

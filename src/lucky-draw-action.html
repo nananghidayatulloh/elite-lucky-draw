@@ -69,11 +69,18 @@
             <button id="btn-draw" class="w-4/5 bg-amber-400 hover:bg-amber-300 text-stone-900 font-bold text-xl py-5 rounded-2xl shadow-xl tracking-wider transition-all transform active:scale-95 uppercase disabled:opacity-50 disabled:cursor-not-allowed">
                 START AUTO DRAW
             </button>
-            <button id="btn-bulk-draw" class="w-1/5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-sm">
+            <!--<button id="btn-bulk-draw" class="w-1/5 bg-purple-600 hover:bg-purple-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-sm">
                 START BULK DRAW
+            </button> -->
+
+             <button id="btn-draw-all-table" class="w-1/5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-sm">
+                DRAW ALL TABLE
             </button>
             <button id="btn-preset-draw" class="w-1/5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-xs px-2">
                 PRESET WINNER
+            </button>
+            <button id="btn-standalone-preset" class="w-1/5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-xs px-2">
+                MASS WINNER PRESET
             </button>
             <a href="index.html" class="w-1/5 bg-stone-800 hover:bg-stone-700 text-white font-bold text-center flex items-center justify-center rounded-2xl shadow-xl uppercase tracking-wider text-sm">
                 Dashboard
@@ -260,6 +267,134 @@
         </div>
     </div>
 
+    <!-- Standalone Preset Modal -->
+    <div id="standalone-preset-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm">
+        <div class="bg-white rounded-2xl max-w-2xl w-full mx-4 shadow-2xl overflow-hidden max-h-[90vh] flex flex-col">
+            <!-- Header -->
+            <div class="bg-gradient-to-r from-indigo-600 to-indigo-700 px-6 py-4 flex-shrink-0">
+                <h3 class="text-white font-bold text-xl">Mass Preset Draw</h3>
+                <p class="text-indigo-100 text-xs mt-1">Select preset winner from imported data</p>
+            </div>
+            
+            <!-- Content -->
+            <div class="p-6 overflow-y-auto flex-1">
+                <!-- Step: Select Prize -->
+                <div id="standalone-select-section">
+                    <p class="text-sm font-bold text-stone-700 mb-2">Select Prize to Draw</p>
+                    <select id="standalone-prize-select" class="w-full border rounded-xl px-4 py-2 text-stone-900 mb-3">
+                        <option value="">-- Select Prize --</option>
+                    </select>
+                    
+                    <!-- Winner Info -->
+                    <div id="standalone-winner-info" class="hidden p-4 bg-indigo-50 rounded-xl border border-indigo-200">
+                        <p class="text-xs text-indigo-600 uppercase tracking-wider font-semibold">Pre-Selected Winner</p>
+                        <div class="mt-2">
+                            <p class="text-xl font-bold text-stone-900" id="standalone-winner-name">-</p>
+                            <p class="text-lg font-mono text-indigo-700 font-bold" id="standalone-winner-lucky">-</p>
+                        </div>
+                        <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                                <span class="text-stone-400">Email:</span>
+                                <span class="text-stone-700" id="standalone-winner-email">-</span>
+                            </div>
+                            <div>
+                                <span class="text-stone-400">Table:</span>
+                                <span class="text-stone-700" id="standalone-winner-table">-</span>
+                            </div>
+                            <div>
+                                <span class="text-stone-400">Type:</span>
+                                <span class="text-stone-700" id="standalone-winner-type">-</span>
+                            </div>
+                            <div>
+                                <span class="text-stone-400">Price:</span>
+                                <span class="text-stone-700 font-bold text-indigo-700" id="standalone-winner-price">-</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-stone-400 mt-2" id="standalone-winner-status">Status: Pending</p>
+                    </div>
+                    
+                    <!-- Redraw Options -->
+                    <div id="standalone-redraw-options" class="hidden mt-3 p-3 bg-red-50 border border-red-200 rounded-xl">
+                        <p class="text-xs font-bold text-red-700 mb-2">🔄 Redraw - Select Replacement</p>
+                        <select id="standalone-redraw-select" class="w-full border rounded-xl px-4 py-2 text-stone-900">
+                            <option value="">-- Select Replacement --</option>
+                        </select>
+                        <button id="standalone-confirm-redraw" class="mt-2 w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-xl transition-all text-sm">
+                            Confirm Redraw
+                        </button>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex gap-3 mt-3">
+                        <button id="standalone-execute-draw" class="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                            Draw on Stage
+                        </button>
+                        <button id="standalone-redraw-btn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed text-sm">
+                            Redraw
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Actions -->
+            <div class="p-6 border-t border-stone-200 flex gap-3 flex-shrink-0">
+                <button id="standalone-close" class="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold py-3 rounded-xl transition-all">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Draw All by Table Modal -->
+<div id="draw-all-table-modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/70 backdrop-blur-sm">
+    <div class="bg-white rounded-2xl max-w-md w-full mx-4 shadow-2xl overflow-hidden">
+        <div class="bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-4">
+            <h3 class="text-white font-bold text-xl">Draw All by Table</h3>
+            <p class="text-emerald-100 text-xs mt-1">All attendees in selected table will win</p>
+        </div>
+        <div class="p-6">
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-semibold text-stone-700">Select Prize:</label>
+                    <select id="draw-all-prize-select" class="w-full border rounded-xl px-4 py-2 text-stone-900">
+                        <option value="">-- Select Prize --</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-stone-700">Select Table:</label>
+                    <select id="draw-all-table-select" class="w-full border rounded-xl px-4 py-2 text-stone-900">
+                        <option value="">-- Select Table --</option>
+                    </select>
+                    <p class="text-xs text-stone-400 mt-1">
+                        All attendees in this table will be drawn as winners
+                    </p>
+                </div>
+                
+                <!-- Preview Info -->
+                <div id="draw-all-preview" class="hidden p-3 bg-emerald-50 border border-emerald-200 rounded-xl">
+                    <p class="text-xs text-emerald-700 font-semibold">Table Preview</p>
+                    <div id="draw-all-info" class="mt-1 text-sm">
+                        <span class="font-bold text-stone-900" id="draw-all-count">0</span>
+                        <span class="text-stone-500"> attendees will be drawn</span>
+                    </div>
+                    <div class="mt-2 max-h-32 overflow-y-auto text-xs" id="draw-all-names">
+                        <span class="text-stone-400">Select a table to preview</span>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3 pt-4">
+                    <button id="draw-all-execute" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed">
+                        Draw All
+                    </button>
+                    <button id="draw-all-close" class="flex-1 bg-stone-200 hover:bg-stone-300 text-stone-700 font-bold py-3 rounded-xl transition-all">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+    
     <script src="assets/db-config.js"></script>
     <script>
         const IS_TAURI = typeof window.__TAURI__ !== 'undefined';
@@ -270,6 +405,8 @@
         let heartbeatInterval = null;
         let drawTimeout = null;
         let countdownInterval = null;
+        let standaloneSelectedId = null;
+        let standaloneCurrentPreset = null;
         
         // Draw configuration
         const DRAW_DURATION = 6000; // 6 detik rolling
@@ -374,7 +511,7 @@
                         </div>
                         <h3 class="font-bold text-white text-sm truncate">${stage.prize_name}</h3>
                         <p class="text-xs text-amber-200/80 mt-1">${stage.stage_name}</p>
-                        <p class="text-xs text-stone-300 mt-1">💰 RM${stage.prize_price.toLocaleString()}</p>
+                        <p class="text-xs text-stone-300 mt-1">RM${stage.prize_price.toLocaleString()}</p>
                         <p class="text-sm font-bold mt-2">
                             <span id="stage-${stage.id}-drawn">${stage.drawn_count || 0}</span>/<span id="stage-${stage.id}-quota">${stage.quota}</span>
                             ${remaining > 0 ? `<span class="text-xs text-green-400 ml-1">(${remaining} left)</span>` : '<span class="text-xs text-red-400 ml-1">✓ Done</span>'}
@@ -1269,6 +1406,219 @@
                     btn.html(originalText).prop('disabled', false);
                 }
             });
+
+            $('#btn-standalone-preset').click(async function() {
+                standaloneSelectedId = null;
+                standaloneCurrentPreset = null;
+                
+                $('#standalone-winner-info').addClass('hidden');
+                $('#standalone-redraw-options').addClass('hidden');
+                $('#standalone-execute-draw').prop('disabled', true);
+                $('#standalone-redraw-btn').prop('disabled', true);
+                
+                await loadStandaloneDrawOptions();
+                $('#standalone-preset-modal').removeClass('hidden').addClass('flex');
+            });
+
+            // Close Standalone Preset Modal
+            $('#standalone-close').click(function() {
+                $('#standalone-preset-modal').addClass('hidden').removeClass('flex');
+            });
+
+            $('#standalone-preset-modal').click(function(e) {
+                if (e.target === this) {
+                    $(this).addClass('hidden').removeClass('flex');
+                }
+            });
+
+            // Prize Selection
+            $(document).on('change', '#standalone-prize-select', function() {
+                const id = $(this).val();
+                console.log('📌 Selected standalone prize ID:', id);
+                
+                if (id) {
+                    loadStandaloneWinnerInfo(id);
+                } else {
+                    $('#standalone-winner-info').addClass('hidden');
+                    $('#standalone-execute-draw').prop('disabled', true);
+                    $('#standalone-redraw-btn').prop('disabled', true);
+                    standaloneSelectedId = null;
+                    standaloneCurrentPreset = null;
+                }
+            });
+
+            // Execute Draw
+            $('#standalone-execute-draw').click(async function() {
+                if (!standaloneSelectedId) {
+                    alert('Please select a prize first!');
+                    return;
+                }
+                
+                const presets = await window.getStandalonePresets();
+                const preset = presets.find(p => p.id === standaloneSelectedId);
+                if (!preset) return;
+                
+                if (!confirm(`🎯 Execute Draw?\n\nPrize: ${preset.prize_name}\nWinner: ${preset.winner_name}\nLucky Number: ${preset.lucky_number}\n\nMake sure the winner is present.`)) return;
+                
+                const btn = $(this);
+                const origText = btn.html();
+                btn.html('<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div>').prop('disabled', true);
+                
+                try {
+                    await executeStandaloneDraw(standaloneSelectedId, false);
+                    await renderWinnerTable();
+                    await renderStages();
+                    await updateStageDisplay();
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                } finally {
+                    btn.html(origText).prop('disabled', false);
+                }
+            });
+
+            // Show Redraw Options
+            $('#standalone-redraw-btn').click(function() {
+                if (!standaloneSelectedId) {
+                    alert('Please select a prize first!');
+                    return;
+                }
+                $('#standalone-redraw-options').toggleClass('hidden');
+            });
+
+            // Confirm Redraw
+            $('#standalone-confirm-redraw').click(async function() {
+                if (!standaloneSelectedId) {
+                    alert('No prize selected!');
+                    return;
+                }
+                
+                const replacementId = $('#standalone-redraw-select').val();
+                if (!replacementId) {
+                    alert('Please select a replacement winner!');
+                    return;
+                }
+                
+                const presets = await window.getStandalonePresets();
+                const original = presets.find(p => p.id === standaloneSelectedId);
+                const replacement = presets.find(p => p.id === replacementId);
+                
+                if (!original || !replacement) {
+                    alert('Data not found!');
+                    return;
+                }
+                
+                if (!confirm(`🔄 CONFIRM REDRAW\n\nPrize: ${original.prize_name}\nOriginal: ${original.winner_name} (${original.lucky_number})\nReplacement: ${replacement.winner_name} (${replacement.lucky_number})\n\nProceed?`)) return;
+                
+                const btn = $(this);
+                const origText = btn.html();
+                btn.html('<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div>').prop('disabled', true);
+                
+                try {
+                    await executeStandaloneDraw(standaloneSelectedId, true, replacementId);
+                    await renderWinnerTable();
+                    await renderStages();
+                    await updateStageDisplay();
+                    $('#standalone-redraw-options').addClass('hidden');
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                } finally {
+                    btn.html(origText).prop('disabled', false);
+                }
+            });
+
+        // ========== DRAW ALL BY TABLE EVENTS ==========
+
+        // Open Draw All Modal
+        $('#btn-draw-all-table').click(async function() {
+            await loadDrawAllPrizes();
+            await loadDrawAllTables();
+            $('#draw-all-preview').addClass('hidden');
+            $('#draw-all-execute').prop('disabled', true);
+            $('#draw-all-table-modal').removeClass('hidden').addClass('flex');
+        });
+
+        // Close Draw All Modal
+        $('#draw-all-close').click(function() {
+            $('#draw-all-table-modal').addClass('hidden').removeClass('flex');
+        });
+
+        $('#draw-all-table-modal').click(function(e) {
+            if (e.target === this) {
+                $(this).addClass('hidden').removeClass('flex');
+            }
+        });
+
+        // Preview table on selection
+        $('#draw-all-table-select').on('change', function() {
+            const tableNumber = $(this).val();
+            const prizeId = $('#draw-all-prize-select').val();
+            
+            if (tableNumber) {
+                previewDrawAllTable(tableNumber);
+                $('#draw-all-execute').prop('disabled', !prizeId);
+            } else {
+                $('#draw-all-preview').addClass('hidden');
+                $('#draw-all-execute').prop('disabled', true);
+            }
+        });
+
+        // Enable/disable execute on prize selection
+        $('#draw-all-prize-select').on('change', function() {
+            const prizeId = $(this).val();
+            const tableNumber = $('#draw-all-table-select').val();
+            $('#draw-all-execute').prop('disabled', !prizeId || !tableNumber);
+        });
+
+        // Execute Draw All
+        $('#draw-all-execute').click(async function() {
+            const prizeId = $('#draw-all-prize-select').val();
+            const tableNumber = $('#draw-all-table-select').val();
+            
+            if (!prizeId) {
+                alert('Please select a prize!');
+                return;
+            }
+            if (!tableNumber) {
+                alert('Please select a table!');
+                return;
+            }
+            
+            // Get preview info
+            const attendees = await getAttendeesByTable(tableNumber);
+            const available = attendees.filter(a => a.is_winner === 0);
+            
+            if (available.length === 0) {
+                alert('⚠️ No available attendees in this table! All are already winners.');
+                return;
+            }
+            
+            if (!confirm(`🎯 DRAW ALL TABLE ${tableNumber}?\n\nPrize: ${$('#draw-all-prize-select option:selected').text()}\nTotal Winners: ${available.length}\n\nAll attendees in this table will be drawn as winners.\nProceed?`)) return;
+            
+            const btn = $(this);
+            const originalText = btn.html();
+            btn.html('<div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mx-auto"></div>').prop('disabled', true);
+            
+            try {
+                if (!projectorReady && !IS_TAURI) {
+                    projectorReady = true;
+                }
+                
+                const result = await executeDrawAllByTable(prizeId, tableNumber);
+                
+                alert(`✅ Draw All Success!\n\n${result.winners.length} winner(s) drawn from Table ${tableNumber}\nPrize: ${result.prize.name}`);
+                $('#draw-all-table-modal').addClass('hidden').removeClass('flex');
+                await renderWinnerTable();
+                await renderStages();
+                await updateStageDisplay();
+                
+            } catch (err) {
+                alert('❌ Error: ' + err.message);
+                console.error('Draw All error:', err);
+            } finally {
+                btn.html(originalText).prop('disabled', false);
+            }
+        });
+
         });
         
 
@@ -1653,6 +2003,351 @@
             tx.oncomplete = () => db.close();
         });
     }
+
+    async function loadStandaloneDrawOptions() {
+    try {
+        const presets = await window.getStandalonePresets();
+        console.log('📊 Standalone presets:', presets);
+        
+        const pending = presets.filter(p => p.status === 'pending' || !p.status);
+        console.log('📊 Pending presets:', pending);
+        
+        const select = $('#standalone-prize-select');
+        select.empty().append('<option value="">-- Select Prize --</option>');
+        
+        if (pending.length === 0) {
+            select.append('<option value="" disabled>No pending winners available</option>');
+            $('#standalone-execute-draw').prop('disabled', true);
+            $('#standalone-redraw-btn').prop('disabled', true);
+            $('#standalone-winner-info').addClass('hidden');
+            return;
+        }
+        
+        // Group by round
+        const grouped = {};
+        pending.forEach(p => {
+            const round = p.round || 1;
+            if (!grouped[round]) grouped[round] = [];
+            grouped[round].push(p);
+        });
+        
+        Object.keys(grouped).sort((a, b) => parseInt(a) - parseInt(b)).forEach(round => {
+            const optgroup = $(`<optgroup label="Round ${round}"></optgroup>`);
+            grouped[round].forEach(p => {
+                const label = `${p.prize_name} - ${p.winner_name} (${p.lucky_number})`;
+                optgroup.append(`<option value="${p.id}">${label}</option>`);
+            });
+            select.append(optgroup);
+        });
+        
+        // Auto-select first item
+        const firstOption = select.find('option:not([value=""])').first();
+        if (firstOption.length > 0) {
+            select.val(firstOption.val());
+            select.trigger('change');
+            console.log('✅ Auto-selected first prize:', firstOption.val());
+        }
+        
+        $('#standalone-execute-draw').prop('disabled', false);
+        $('#standalone-redraw-btn').prop('disabled', false);
+        
+    } catch (err) {
+        console.error('Load draw options error:', err);
+    }
+}
+
+// Load Standalone Winner Info
+async function loadStandaloneWinnerInfo(presetId) {
+    if (!presetId) {
+        $('#standalone-winner-info').addClass('hidden');
+        $('#standalone-execute-draw').prop('disabled', true);
+        $('#standalone-redraw-btn').prop('disabled', true);
+        standaloneSelectedId = null;
+        standaloneCurrentPreset = null;
+        return;
+    }
+    
+    const presets = await window.getStandalonePresets();
+    const preset = presets.find(p => p.id === presetId);
+    
+    if (!preset || preset.status !== 'pending') {
+        $('#standalone-winner-info').addClass('hidden');
+        $('#standalone-execute-draw').prop('disabled', true);
+        $('#standalone-redraw-btn').prop('disabled', true);
+        return;
+    }
+    
+    standaloneSelectedId = presetId;
+    standaloneCurrentPreset = preset;
+    
+    $('#standalone-winner-name').text(preset.winner_name);
+    $('#standalone-winner-lucky').text(preset.lucky_number);
+    $('#standalone-winner-email').text(preset.winner_email || '-');
+    $('#standalone-winner-table').text(preset.table_number || '-');
+    $('#standalone-winner-type').text(preset.prize_type || '-');
+    $('#standalone-winner-price').text(preset.prize_price || 'RM -');
+    $('#standalone-winner-status').text(`Status: ${(preset.status || 'pending').toUpperCase()} - ${preset.prize_name}`);
+    $('#standalone-winner-info').removeClass('hidden');
+    $('#standalone-execute-draw').prop('disabled', false);
+    $('#standalone-redraw-btn').prop('disabled', false);
+    
+    // Load redraw options (other pending winners in same round)
+    await loadStandaloneRedrawOptions(preset);
+}
+
+// Load Standalone Redraw Options
+async function loadStandaloneRedrawOptions(currentPreset) {
+    const presets = await window.getStandalonePresets();
+    const pending = presets.filter(p => 
+        (p.status === 'pending' || !p.status) && 
+        p.id !== currentPreset.id && 
+        p.round === currentPreset.round
+    );
+    
+    const select = $('#standalone-redraw-select');
+    select.empty().append('<option value="">-- Select Replacement --</option>');
+    
+    pending.forEach(p => {
+        select.append(`<option value="${p.id}">${p.winner_name} (${p.lucky_number}) - ${p.prize_name}</option>`);
+    });
+    
+    if (pending.length === 0) {
+        select.append('<option value="" disabled>No replacements available</option>');
+    }
+}
+
+// Execute Standalone Draw
+async function executeStandaloneDraw(presetId, isRedraw = false, replacementId = null) {
+    const presets = await window.getStandalonePresets();
+    const preset = presets.find(p => p.id === presetId);
+    if (!preset) throw new Error('Preset not found!');
+    if (preset.status === 'drawn') throw new Error('This winner has already been drawn!');
+    
+    let winnerData = preset;
+    let replacementData = null;
+    
+    // If redraw with replacement
+    if (isRedraw && replacementId) {
+        const replacement = presets.find(p => p.id === replacementId);
+        if (!replacement) throw new Error('Replacement not found!');
+        if (replacement.status === 'drawn') throw new Error('Replacement already drawn!');
+        
+        replacementData = replacement;
+        winnerData = replacement;
+    }
+    
+    // Update status
+    if (isRedraw && replacementData) {
+        // Mark original as redrawn, replacement as drawn
+        await window.updateStandalonePresetStatus(presetId, 'redrawn', {
+            winner_name: replacementData.winner_name,
+            lucky_number: replacementData.lucky_number,
+            winner_email: replacementData.winner_email,
+            table_number: replacementData.table_number
+        });
+        await window.updateStandalonePresetStatus(replacementId, 'drawn');
+    } else {
+        // Just mark as drawn
+        await window.updateStandalonePresetStatus(presetId, 'drawn');
+    }
+    
+    // Prepare stage data
+    const stageData = {
+        stage_name: isRedraw ? `${preset.prize_name}` : `${preset.prize_name}`,
+        prize_name: winnerData.prize_name,
+        //prize_description: winnerData.prize_description || (isRedraw ? 'Redraw Winner' : 'Pre-selected Winner'),
+        prize_description: '',
+        type_label: winnerData.prize_type || 'STANDALONE PRESET',
+        prize_price: winnerData.prize_price || 'RM -',
+        prize_link: winnerData.prize_link || '',
+        prize_picture: winnerData.prize_picture || '',
+        quota: 1,
+        drawn_count: 1
+    };
+    
+    // Send to projector
+    const winner = {
+        nama: winnerData.winner_name,
+        lucky_code: winnerData.lucky_number,
+        email: winnerData.winner_email || '',
+        table_number: winnerData.table_number || ''
+    };
+    
+    await emitToProjector('draw-start', { stage: stageData });
+    await new Promise(resolve => setTimeout(resolve, 3500));
+    await emitToProjector('draw-stop', { winner: winner, stage: stageData });
+    await emitToProjector('stage-update', { stage: stageData });
+    
+    const action = isRedraw ? 'Redraw' : 'Preset Draw';
+    alert(`${action} Success!\n\nWinner: ${winnerData.winner_name} (${winnerData.lucky_number})\nPrize: ${preset.prize_name}`);
+    
+    // Refresh UI
+    await loadStandaloneDrawOptions();
+    $('#standalone-winner-info').addClass('hidden');
+    $('#standalone-execute-draw').prop('disabled', true);
+    $('#standalone-redraw-btn').prop('disabled', true);
+    $('#standalone-redraw-options').addClass('hidden');
+}
+
+// ========== DRAW ALL BY TABLE ==========
+
+// Load prizes untuk Draw All
+async function loadDrawAllPrizes() {
+    const prizes = await getPrizes();
+    const select = $('#draw-all-prize-select');
+    select.empty();
+    select.append('<option value="">-- Select Prize --</option>');
+    prizes.filter(p => !p.is_drawn).forEach(p => {
+        select.append(`<option value="${p.id}">${p.name} (${p.type}) - Round ${p.round}</option>`);
+    });
+    if (prizes.filter(p => !p.is_drawn).length === 0) {
+        select.append('<option value="" disabled>No available prizes</option>');
+    }
+}
+
+// Load tables untuk Draw All
+async function loadDrawAllTables() {
+    const db = await getDatabase();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(["attendances"], "readonly");
+        const store = tx.objectStore("attendances");
+        const request = store.getAll();
+        
+        request.onsuccess = () => {
+            const attendees = request.result;
+            const tables = [...new Set(attendees
+                .map(a => a.table_number ? String(a.table_number).trim() : '')
+                .filter(t => t !== '')
+            )];
+            
+            tables.sort((a, b) => {
+                const numA = parseInt(a.replace(/[^0-9]/g, '')) || 0;
+                const numB = parseInt(b.replace(/[^0-9]/g, '')) || 0;
+                return numA - numB;
+            });
+            
+            const select = $('#draw-all-table-select');
+            select.empty().append('<option value="">-- Select Table --</option>');
+            
+            // Hitung jumlah peserta per table
+            tables.forEach(table => {
+                const count = attendees.filter(a => 
+                    String(a.table_number || '').trim() === table
+                ).length;
+                select.append(`<option value="${table}">Table ${table} (${count} attendees)</option>`);
+            });
+            
+            resolve(tables);
+        };
+        request.onerror = () => reject(request.error);
+        tx.oncomplete = () => db.close();
+    });
+}
+
+// Preview table attendees
+async function previewDrawAllTable(tableNumber) {
+    if (!tableNumber) {
+        $('#draw-all-preview').addClass('hidden');
+        return;
+    }
+    
+    const attendees = await getAttendeesByTable(tableNumber);
+    const available = attendees.filter(a => a.is_winner === 0);
+    const alreadyWinners = attendees.filter(a => a.is_winner === 1);
+    
+    $('#draw-all-count').text(available.length);
+    $('#draw-all-preview').removeClass('hidden');
+    
+    let namesHtml = '';
+    if (available.length > 0) {
+        namesHtml = available.map(a => 
+            `<span class="inline-block bg-green-100 text-green-800 px-2 py-0.5 rounded-full m-0.5">${a.nama} (${a.lucky_code})</span>`
+        ).join(' ');
+    } else {
+        namesHtml = '<span class="text-amber-600">All attendees in this table are already winners!</span>';
+    }
+    
+    if (alreadyWinners.length > 0) {
+        namesHtml += `<br><span class="text-xs text-stone-400">${alreadyWinners.length} already winner(s)</span>`;
+    }
+    
+    $('#draw-all-names').html(namesHtml);
+}
+
+// Execute Draw All by Table
+async function executeDrawAllByTable(prizeId, tableNumber) {
+    const prizes = await getPrizes();
+    const prize = prizes.find(p => String(p.id) === String(prizeId));
+    
+    if (!prize) throw new Error('Prize not found!');
+    if (prize.is_drawn) throw new Error('Prize already drawn!');
+    
+    // Get all attendees from table
+    const attendees = await getAttendeesByTable(tableNumber);
+    const available = attendees.filter(a => a.is_winner === 0);
+    
+    if (available.length === 0) {
+        throw new Error(`No available attendees in table "${tableNumber}"`);
+    }
+    
+    // ========== SIMPAN SEMUA PEMENANG ==========
+    for (const winner of available) {
+        await setWinnerForPrize(prize.id, winner.id, true);
+    }
+    
+    // Mark prize as drawn
+    const db2 = await getDatabase();
+    const tx2 = db2.transaction(["prizes"], "readwrite");
+    const prizeStore2 = tx2.objectStore("prizes");
+    const getPrize2 = prizeStore2.get(prizeId);
+    
+    await new Promise((resolve, reject) => {
+        getPrize2.onsuccess = () => {
+            const p = getPrize2.result;
+            if (p) {
+                p.is_drawn = 1;
+                prizeStore2.put(p);
+                console.log(`[Draw All] Prize ${p.name} marked as drawn`);
+            }
+            resolve();
+        };
+        getPrize2.onerror = () => reject(getPrize2.error);
+        tx2.oncomplete = () => { db2.close(); };
+        tx2.onerror = () => { db2.close(); reject(tx2.error); };
+    });
+    
+    // Get updated stage
+    const stages = await getStages();
+    const updatedStage = stages.find(s => String(s.id) === String(prize.round)) || {
+        quota: available.length,
+        drawn_count: available.length
+    };
+    
+    const formattedPrice = formatPrizePrice(prize.price);
+    
+    const stageData = {
+        stage_name: `DRAW ALL - TABLE ${tableNumber}`,
+        prize_name: prize.name,
+        prize_description: prize.description || `Table ${tableNumber} • Total ${available.length} Winners`,
+        type_label: (prize.type || 'DRAW ALL').toUpperCase(),
+        prize_price: formattedPrice,
+        quota: updatedStage.quota || available.length,
+        drawn_count: updatedStage.drawn_count || available.length
+    };
+    
+    console.log('📊 Draw All stageData:', stageData);
+    
+    // Kirim ke proyektor
+    await emitToProjector('draw-start', { stage: stageData });
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    await emitToProjector('draw-stop-bulk', {
+        winners: available,
+        stage: stageData
+    });
+    await emitToProjector('stage-update', { stage: stageData });
+    
+    return { prize, winners: available };
+}
 
     </script>
 </body>
