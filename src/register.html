@@ -62,12 +62,103 @@
             border-color: #ffdc73;
             color: #ffdc73;
         }
+        .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .table-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        .table-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        .table-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 3px;
+        }
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+        .badge-count {
+            background: rgba(255, 220, 115, 0.2);
+            color: #ffdc73;
+            font-size: 0.65rem;
+            padding: 0.1rem 0.6rem;
+            border-radius: 9999px;
+            border: 1px solid rgba(255, 220, 115, 0.3);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: #94a3b8;
+        }
+        .empty-state svg {
+            margin: 0 auto 1rem;
+            opacity: 0.3;
+        }
+        .main-table-wrapper {
+            border: 1px solid #e2e8f0;
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+        .main-table-wrapper table {
+            width: 100%;
+            font-size: 0.875rem;
+            border-collapse: collapse;
+        }
+        .main-table-wrapper table th {
+            text-align: left;
+            font-weight: 600;
+            color: #475569;
+            padding: 0.75rem 1rem;
+            background: #f1f5f9;
+            border-bottom: 2px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            z-index: 2;
+        }
+        .main-table-wrapper table td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid #f1f5f9;
+            color: #334155;
+        }
+        .tables-scroll-container {
+            max-height: 500px;
+            overflow-y: auto;
+            border-radius: 0.75rem;
+            border: 1px solid #e2e8f0;
+        }
+        .tables-scroll-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .tables-scroll-container::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        .tables-scroll-container::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .tables-scroll-container::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+        .tables-scroll-container .main-table-wrapper {
+            border: none;
+            border-radius: 0;
+        }
+        .tables-scroll-container .main-table-wrapper table thead th {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: #f1f5f9;
+        }
     </style>
 </head>
 <body class="antialiased bg-stone-900 text-stone-900 overflow-x-hidden">
 
-    <div class="auth-hero-bg relative min-h-screen flex flex-col justify-between py-6 px-4">
-        
+    <div class="auth-hero-bg relative min-h-screen flex flex-col py-6 px-4">
+
         <!-- Top Navigation -->
         <div class="max-w-6xl w-full mx-auto flex items-center justify-between border-b border-white/10 pb-4 mb-6">
             <a href="index.html" class="inline-flex items-center text-sm font-medium text-amber-200/80 hover:text-amber-200 transition-colors group">
@@ -80,281 +171,315 @@
         </div>
 
         <!-- Tabs -->
-        <div class="max-w-6xl w-full mx-auto mb-6 flex gap-2 flex-wrap">
+        <div class="max-w-6xl w-full mx-auto mb-6 flex gap-2 flex-wrap items-center">
             <button class="tab-btn active border border-white/20 rounded-lg px-4 py-2 text-sm text-white/80 hover:text-white transition" data-tab="attendance">
-                Import Attendance
+                Attendance <span id="attendance-count" class="badge-count ml-1">0</span>
             </button>
             <button class="tab-btn border border-white/20 rounded-lg px-4 py-2 text-sm text-white/80 hover:text-white transition" data-tab="prizes">
-                Import Prizes
+                Prizes <span id="prizes-count" class="badge-count ml-1">0</span>
             </button>
             <button class="tab-btn border border-white/20 rounded-lg px-4 py-2 text-sm text-white/80 hover:text-white transition" data-tab="setwinner">
-                Import Set Winner
+                Set Winner <span id="setwinner-count-badge" class="badge-count ml-1">0</span>
+            </button>
+            <button class="tab-btn border border-white/20 rounded-lg px-4 py-2 text-sm text-white/80 hover:text-white transition" data-tab="tables">
+                Tables <span id="tables-count" class="badge-count ml-1">0</span>
+            </button>
+            <div class="flex-1"></div>
+            <button id="btn-refresh" class="text-white/60 hover:text-white text-xs flex items-center gap-1 transition">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                </svg>
+                Refresh
             </button>
         </div>
 
         <!-- Main Workspace -->
-        <div class="max-w-6xl w-full mx-auto grid grid-cols-1 lg:grid-cols-12 gap-6 items-start my-auto">
-            
-            <!-- Left Column: Guide & Rules -->
-            <div class="lg:col-span-4 space-y-4 text-white">
-                <div id="tab-guide">
-                    <div id="guide-attendance">
-                        <span class="text-xs font-bold text-amber-400 uppercase tracking-widest block">Step 01</span>
-                        <h1 class="text-3xl font-black tracking-tight font-sans text-white uppercase">Import<br>Attendance</h1>
-                        <p class="text-stone-300 text-sm leading-relaxed">
-                            Upload your Excel file with attendee data. The system will map columns and generate unique lucky codes.
-                        </p>
+        <div class="max-w-6xl w-full mx-auto">
+            <div class="menu-card rounded-3xl p-6 shadow-2xl space-y-6">
+
+                <!-- Attendance Table -->
+                <div id="attendance-content" class="tab-content">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-stone-800">📋 Attendance Data</h2>
+                            <p class="text-xs text-stone-400">Total: <span id="attendance-total">0</span> records</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="btn-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2" id="btn-upload-attendance">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                Upload
+                            </button>
+                            <button class="btn-secondary text-xs font-semibold px-4 py-2 rounded-lg" id="btn-clear-attendance">Clear All</button>
+                        </div>
                     </div>
-                    <div id="guide-prizes" class="hidden">
-                        <span class="text-xs font-bold text-amber-400 uppercase tracking-widest block">Step 02</span>
-                        <h1 class="text-3xl font-black tracking-tight font-sans text-white uppercase">Import<br>Prizes</h1>
-                        <p class="text-stone-300 text-sm leading-relaxed">
-                            Upload prize list with type, round, name, description, price, and picture URL. Supports bulk prizes.
-                        </p>
+                    <div class="dropzone rounded-xl p-6 text-center relative group" id="dropzone-attendance">
+                        <div id="dropzone-content-attendance" class="space-y-2">
+                            <div class="w-10 h-10 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                            </div>
+                            <p class="text-xs text-stone-500">Drop Excel/CSV here or click to browse</p>
+                        </div>
                     </div>
-                    <div id="guide-setwinner" class="hidden">
-                        <span class="text-xs font-bold text-amber-400 uppercase tracking-widest block">Step 03</span>
-                        <h1 class="text-3xl font-black tracking-tight font-sans text-white uppercase">Import<br>Set Winner</h1>
-                        <p class="text-stone-300 text-sm leading-relaxed">
-                            Upload pre-selected winners list. Each row contains prize name, winner name, and lucky number.
-                        </p>
+                    <input type="file" id="file-attendance" accept=".csv,.xlsx" class="hidden" />
+                    <div id="attendance-table-wrapper" class="mt-4 hidden">
+                        <div class="table-container rounded-xl border border-stone-200">
+                            <table class="min-w-full text-xs" id="attendance-table">
+                                <thead class="bg-stone-100 sticky top-0">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Lucky Code</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Name</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Email</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Phone</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Company</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Table</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Winner</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="attendance-table-body"></tbody>
+                            </table>
+                        </div>
                     </div>
                 </div>
-                
-                <div class="bg-black/20 border border-white/5 rounded-2xl p-4 space-y-3 text-xs text-stone-300 font-mono">
-                    <span class="font-bold text-amber-300 block">📋 FILE REQUIREMENT:</span>
-                    <ul class="space-y-2 list-disc list-inside text-stone-400" id="file-requirements">
-                        <li>Format: Excel (.xlsx) or CSV (.csv)</li>
-                        <li>Header row required</li>
-                        <li>UTF-8 encoding</li>
-                    </ul>
+
+                <!-- Prizes Table -->
+                <div id="prizes-content" class="tab-content hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-stone-800">🎁 Prizes Data</h2>
+                            <p class="text-xs text-stone-400">Total: <span id="prizes-total">0</span> records</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="btn-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2" id="btn-upload-prizes">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                Upload
+                            </button>
+                            <button class="btn-secondary text-xs font-semibold px-4 py-2 rounded-lg" id="btn-clear-prizes">Clear All</button>
+                        </div>
+                    </div>
+                    <div class="dropzone rounded-xl p-6 text-center relative group" id="dropzone-prizes">
+                        <div id="dropzone-content-prizes" class="space-y-2">
+                            <div class="w-10 h-10 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                                </svg>
+                            </div>
+                            <p class="text-xs text-stone-500">Drop Excel/CSV here or click to browse</p>
+                        </div>
+                    </div>
+                    <input type="file" id="file-prizes" accept=".csv,.xlsx" class="hidden" />
+                    <div id="prizes-table-wrapper" class="mt-4 hidden">
+                        <div class="table-container rounded-xl border border-stone-200">
+                            <table class="min-w-full text-xs" id="prizes-table">
+                                <thead class="bg-stone-100 sticky top-0">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Type</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Round</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Name</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Description</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Price</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Drawn</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="prizes-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Right Column: Interactive Console Area -->
-            <div class="lg:col-span-8 w-full">
-                <div class="menu-card rounded-3xl p-6 shadow-2xl space-y-6">
-                    
-                    <!-- Attendance Import Area -->
-                    <div id="attendance-import" class="import-area">
-                        <div class="dropzone rounded-2xl p-10 text-center relative group" id="dropzone-attendance">
-                            <div id="dropzone-content-attendance" class="space-y-3">
-                                <div class="w-12 h-12 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-semibold text-stone-800">Click to browse or drop file here</p>
-                                    <p class="text-xs text-stone-400 mt-1">Accepts Excel (.xlsx) or CSV (.csv)</p>
-                                </div>
-                            </div>
+                <!-- Set Winner Table -->
+                <div id="setwinner-content" class="tab-content hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-stone-800">🏆 Set Winner Data</h2>
+                            <p class="text-xs text-stone-400">Total: <span id="setwinner-total">0</span> records</p>
                         </div>
-                        <input type="file" id="file-attendance" accept=".csv,.xlsx" class="hidden" />
-                    </div>
-
-                    <!-- Prizes Import Area -->
-                    <div id="prizes-import" class="import-area hidden">
-                        <div class="dropzone rounded-2xl p-10 text-center relative group" id="dropzone-prizes">
-                            <div id="dropzone-content-prizes" class="space-y-3">
-                                <div class="w-12 h-12 bg-amber-50 text-amber-800 border border-amber-200 rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-semibold text-stone-800">Click to browse or drop prize file here</p>
-                                    <p class="text-xs text-stone-400 mt-1">Excel format with columns: Type, Round, Name, Description, Price, Picture</p>
-                                </div>
-                            </div>
-                        </div>
-                        <input type="file" id="file-prizes" accept=".csv,.xlsx" class="hidden" />
-                    </div>
-
-                    <!-- Set Winner Import Area -->
-                    <div id="setwinner-import" class="import-area hidden">
-                        <div class="dropzone rounded-2xl p-10 text-center relative group" id="dropzone-setwinner">
-                            <div id="dropzone-content-setwinner" class="space-y-3">
-                                <div class="w-12 h-12 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
-                                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                                    </svg>
-                                </div>
-                                <div>
-                                    <p class="text-sm font-semibold text-stone-800">Click to browse or drop file here</p>
-                                    <p class="text-xs text-stone-400 mt-1">Accepts Excel (.xlsx) or CSV (.csv)</p>
-                                    <p class="text-xs text-indigo-400 mt-1">Columns: Prize Name, Winner Name, Lucky Number</p>
-                                </div>
-                            </div>
-                        </div>
-                        <input type="file" id="file-setwinner" accept=".csv,.xlsx" class="hidden" />
-                    </div>
-
-                    <!-- File Info -->
-                    <div id="file-info" class="hidden p-3 bg-stone-50 border border-stone-200 rounded-xl text-xs text-stone-700 font-mono">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2 truncate">
-                                <span class="w-2 h-2 rounded-full bg-green-500"></span>
-                                <span class="font-bold text-stone-900 truncate" id="file-name"></span>
-                            </div>
-                            <span id="file-size" class="text-stone-400 shrink-0 ml-4"></span>
+                        <div class="flex gap-2">
+                            <button class="btn-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2" id="btn-upload-setwinner">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                Upload
+                            </button>
+                            <button class="btn-secondary text-xs font-semibold px-4 py-2 rounded-lg" id="btn-clear-setwinner">Clear All</button>
                         </div>
                     </div>
-
-                    <!-- Preview untuk Set Winner -->
-                    <div id="setwinner-preview" class="hidden">
-                        <div class="flex items-center justify-between mb-2">
-                            <span class="text-sm font-bold text-stone-700">📊 Data Preview</span>
-                            <span id="setwinner-count" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded-full"></span>
+                    <div class="dropzone rounded-xl p-6 text-center relative group" id="dropzone-setwinner">
+                        <div id="dropzone-content-setwinner" class="space-y-2">
+                            <div class="w-10 h-10 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            </div>
+                            <p class="text-xs text-stone-500">Drop Excel/CSV here or click to browse</p>
                         </div>
-                        <div class="overflow-x-auto max-h-48 rounded-xl border border-stone-200">
-                            <table class="min-w-full text-xs" id="setwinner-preview-table">
+                    </div>
+                    <input type="file" id="file-setwinner" accept=".csv,.xlsx" class="hidden" />
+                    <div id="setwinner-table-wrapper" class="mt-4 hidden">
+                        <div class="table-container rounded-xl border border-stone-200">
+                            <table class="min-w-full text-xs" id="setwinner-table">
                                 <thead class="bg-stone-100 sticky top-0">
                                     <tr>
                                         <th class="px-3 py-2 text-left font-bold text-stone-600">Prize Name</th>
                                         <th class="px-3 py-2 text-left font-bold text-stone-600">Winner Name</th>
                                         <th class="px-3 py-2 text-left font-bold text-stone-600">Lucky Number</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Email</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Table</th>
                                         <th class="px-3 py-2 text-left font-bold text-stone-600">Status</th>
                                     </tr>
                                 </thead>
-                                <tbody id="setwinner-preview-body"></tbody>
+                                <tbody id="setwinner-table-body"></tbody>
                             </table>
                         </div>
                     </div>
-
-                    <!-- Progress -->
-                    <div id="progress-section" class="hidden p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-2">
-                        <div class="flex justify-between text-xs font-mono font-semibold">
-                            <span class="text-stone-600 animate-pulse" id="progress-status-text">📊 Executing transaction...</span>
-                            <span class="text-stone-900" id="progress-count">0</span>
-                        </div>
-                        <div class="w-full bg-stone-200 rounded-full h-1.5 overflow-hidden">
-                            <div id="progress-bar" class="bg-gradient-to-r from-emerald-600 to-green-500 h-1.5 rounded-full transition-all duration-150" style="width: 0%"></div>
-                        </div>
-                    </div>
-
-                    <!-- Result -->
-                    <div id="result-section" class="hidden">
-                        <div class="rounded-2xl border" id="result-message"></div>
-                    </div>
-
-                    <!-- Actions -->
-                    <div class="flex flex-col sm:flex-row gap-3 pt-2">
-                        <button id="btn-import" class="btn-primary flex-1 text-white text-sm font-bold py-3 px-6 rounded-xl flex items-center justify-center gap-2 shadow-md disabled:opacity-40 disabled:cursor-not-allowed">
-                            Start Import Process
-                        </button>
-                        <button id="btn-clear" class="btn-secondary sm:w-1/3 text-sm font-semibold py-3 px-4 rounded-xl flex items-center justify-center gap-2">
-                            Reset Storage
-                        </button>
-                    </div>
-
                 </div>
-            </div>
 
+                <!-- Tables View - UPLOAD CSV -->
+                <div id="tables-content" class="tab-content hidden">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-lg font-bold text-stone-800">🪑 Tables Data</h2>
+                            <p class="text-xs text-stone-400">Total: <span id="tables-total">0</span> tables</p>
+                        </div>
+                        <div class="flex gap-2">
+                            <button class="btn-primary text-white text-xs font-semibold px-4 py-2 rounded-lg flex items-center gap-2" id="btn-upload-tables">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+                                </svg>
+                                Upload
+                            </button>
+                            <button class="btn-secondary text-xs font-semibold px-4 py-2 rounded-lg" id="btn-clear-tables">Clear All</button>
+                        </div>
+                    </div>
+                    <div class="dropzone rounded-xl p-6 text-center relative group" id="dropzone-tables">
+                        <div id="dropzone-content-tables" class="space-y-2">
+                            <div class="w-10 h-10 bg-blue-50 text-blue-800 border border-blue-200 rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path>
+                                </svg>
+                            </div>
+                            <p class="text-xs text-stone-500">Drop Excel/CSV here or click to browse</p>
+                            <p class="text-[10px] text-stone-400">Format: ID, Number, Name, Created At, Updated At</p>
+                        </div>
+                    </div>
+                    <input type="file" id="file-tables" accept=".csv,.xlsx" class="hidden" />
+                    <div id="tables-table-wrapper" class="mt-4 hidden">
+                        <div class="table-container rounded-xl border border-stone-200">
+                            <table class="min-w-full text-xs" id="tables-table">
+                                <thead class="bg-stone-100 sticky top-0">
+                                    <tr>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">ID</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Number</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Name</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Created At</th>
+                                        <th class="px-3 py-2 text-left font-bold text-stone-600">Updated At</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tables-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Progress -->
+                <div id="progress-section" class="hidden p-4 bg-stone-50 border border-stone-200 rounded-xl space-y-2">
+                    <div class="flex justify-between text-xs font-mono font-semibold">
+                        <span class="text-stone-600 animate-pulse" id="progress-status-text">📊 Processing...</span>
+                        <span class="text-stone-900" id="progress-count">0</span>
+                    </div>
+                    <div class="w-full bg-stone-200 rounded-full h-1.5 overflow-hidden">
+                        <div id="progress-bar" class="bg-gradient-to-r from-emerald-600 to-green-500 h-1.5 rounded-full transition-all duration-150" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Result Notification -->
+                <div id="result-section" class="hidden">
+                    <div class="rounded-2xl border" id="result-message"></div>
+                </div>
+
+            </div>
         </div>
 
     </div>
 
     <script src="assets/db-config.js"></script>
     <script>
-        // ========== TAB SWITCHING ==========
+        // ========== STATE ==========
         let currentTab = 'attendance';
-        let selectedFile = null;
-        let setWinnerData = [];
 
+        // ========== TAB SWITCHING ==========
         $('.tab-btn').click(function() {
             $('.tab-btn').removeClass('active');
             $(this).addClass('active');
-            
             const tab = $(this).data('tab');
             currentTab = tab;
-            
-            // Reset semua area
-            $('#attendance-import').addClass('hidden');
-            $('#prizes-import').addClass('hidden');
-            $('#setwinner-import').addClass('hidden');
-            $('#guide-attendance').addClass('hidden');
-            $('#guide-prizes').addClass('hidden');
-            $('#guide-setwinner').addClass('hidden');
-            $('#setwinner-preview').addClass('hidden');
-            $('#file-info').addClass('hidden');
-            $('#result-section').addClass('hidden');
-            $('#file-attendance').val('');
-            $('#file-prizes').val('');
-            $('#file-setwinner').val('');
-            selectedFile = null;
-            setWinnerData = [];
-            $('#btn-import').prop('disabled', false).text('Start Import Process');
-            
-            if (tab === 'attendance') {
-                $('#attendance-import').removeClass('hidden');
-                $('#guide-attendance').removeClass('hidden');
-                $('#file-requirements').html(`
-                    <li>Format: Excel (.xlsx) or CSV (.csv)</li>
-                    <li>Required columns: ID, Full Name, Lucky Number</li>
-                    <li>Optional: Name, Email, Phone, Company</li>
-                `);
-                resetDropzoneContent('dropzone-content-attendance', 'attendance');
-            } else if (tab === 'prizes') {
-                $('#prizes-import').removeClass('hidden');
-                $('#guide-prizes').removeClass('hidden');
-                $('#file-requirements').html(`
-                    <li>Format: Excel (.xlsx)</li>
-                    <li>Columns: ID, Type, Round, Name, Description, Price, Picture</li>
-                    <li>Type: consolation_prize / major_prize / grand_prize</li>
-                `);
-                resetDropzoneContent('dropzone-content-prizes', 'prizes');
-            } else if (tab === 'setwinner') {
-                $('#setwinner-import').removeClass('hidden');
-                $('#guide-setwinner').removeClass('hidden');
-                $('#file-requirements').html(`
-                    <li>Format: Excel (.xlsx) or CSV (.csv)</li>
-                    <li>Required columns: Prize Name, Winner Name, Lucky Number</li>
-                    <li>Optional: Winner Email, Table Number, Prize Type, Prize Price</li>
-                `);
-                resetDropzoneContent('dropzone-content-setwinner', 'setwinner');
-                $('#btn-import').prop('disabled', true);
-            }
+            $('.tab-content').addClass('hidden');
+            $(`#${tab}-content`).removeClass('hidden');
+            loadTabData(tab);
         });
 
-        function resetDropzoneContent(id, type) {
-            const icons = {
-                attendance: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                </svg>`,
-                prizes: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                </svg>`,
-                setwinner: `<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                </svg>`
-            };
-            
-            const labels = {
-                attendance: 'Accepts Excel (.xlsx) or CSV (.csv)',
-                prizes: 'Excel format with columns: Type, Round, Name, Description, Price, Picture',
-                setwinner: 'Columns: Prize Name, Winner Name, Lucky Number'
-            };
-            
-            const colors = {
-                attendance: 'bg-amber-50 text-amber-800 border-amber-200',
-                prizes: 'bg-amber-50 text-amber-800 border-amber-200',
-                setwinner: 'bg-indigo-50 text-indigo-800 border-indigo-200'
-            };
-            
-            $(`#${id}`).html(`
-                <div class="w-12 h-12 ${colors[type]} rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
-                    ${icons[type]}
-                </div>
-                <div>
-                    <p class="text-sm font-semibold text-stone-800">Click to browse or drop file here</p>
-                    <p class="text-xs text-stone-400 mt-1">${labels[type]}</p>
-                    ${type === 'setwinner' ? '<p class="text-xs text-indigo-400 mt-1">Upload pre-selected winners list</p>' : ''}
-                </div>
-            `);
+        // ========== LOAD DATA FROM INDEXEDDB ==========
+        async function loadTabData(tab) {
+            try {
+                if (tab === 'attendance') await loadAttendanceData();
+                else if (tab === 'prizes') await loadPrizesData();
+                else if (tab === 'setwinner') await loadSetWinnerData();
+                else if (tab === 'tables') await loadTablesData();
+            } catch (err) {
+                console.error('Load data error:', err);
+            }
         }
 
-        // ========== FUNCTIONS ==========
+        function getDataFromStore(storeName) {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
+                request.onsuccess = function(event) {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(storeName)) {
+                        db.close();
+                        resolve([]);
+                        return;
+                    }
+                    const tx = db.transaction([storeName], "readonly");
+                    const store = tx.objectStore(storeName);
+                    const getRequest = store.getAll();
+                    getRequest.onsuccess = () => {
+                        db.close();
+                        resolve(getRequest.result || []);
+                    };
+                    getRequest.onerror = () => {
+                        db.close();
+                        reject(getRequest.error);
+                    };
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function clearStore(storeName) {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
+                request.onsuccess = function(event) {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains(storeName)) {
+                        db.close();
+                        resolve();
+                        return;
+                    }
+                    const tx = db.transaction([storeName], "readwrite");
+                    tx.objectStore(storeName).clear();
+                    tx.oncomplete = () => { db.close(); resolve(); };
+                    tx.onerror = () => { db.close(); reject(tx.error); };
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+
         function generateUUID() {
             return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
                 const r = Math.random() * 16 | 0;
@@ -363,78 +488,43 @@
             });
         }
 
-        function parseCSVLine(line, delimiter) {
-            const result = [];
-            let inQuote = false;
-            let currentField = '';
-            
-            for (let i = 0; i < line.length; i++) {
-                const char = line[i];
-                if (char === '"') {
-                    inQuote = !inQuote;
-                } else if (char === delimiter && !inQuote) {
-                    result.push(currentField);
-                    currentField = '';
-                } else {
-                    currentField += char;
-                }
-            }
-            result.push(currentField);
-            return result.map(field => field.replace(/^"|"$/g, '').trim());
-        }
-
-        async function clearAllData() {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
-        request.onsuccess = function(event) {
-            const db = event.target.result;
-            
-            const storeNames = Array.from(db.objectStoreNames);
-            const storesToClear = storeNames.filter(name => 
-                ['attendances', 'winners', 'draw_stages', 'prizes', 'bulk_draws', 'standalone_preset'].includes(name)
-            );
-            
-            if (storesToClear.length === 0) {
-                db.close();
-                resolve();
-                return;
-            }
-            
-            const tx = db.transaction(storesToClear, "readwrite");
-            storesToClear.forEach(store => {
-                if (db.objectStoreNames.contains(store)) {
-                    tx.objectStore(store).clear();
-                }
-            });
-            
-            tx.oncomplete = () => { 
-                db.close(); 
-                resolve(); 
-            };
-            tx.onerror = () => {
-                db.close();
-                reject(tx.error);
-            };
-        };
-        request.onerror = () => reject(request.error);
-    });
-}
         // ========== PARSE EXCEL FILE ==========
         async function parseExcelFile(file) {
             return new Promise((resolve, reject) => {
                 const extension = file.name.split('.').pop().toLowerCase();
                 const reader = new FileReader();
                 
+                function parseCSVLine(line, delimiter) {
+                    const result = [];
+                    let inQuote = false;
+                    let currentField = '';
+                    for (let i = 0; i < line.length; i++) {
+                        const char = line[i];
+                        if (char === '"') {
+                            inQuote = !inQuote;
+                        } else if (char === delimiter && !inQuote) {
+                            result.push(currentField);
+                            currentField = '';
+                        } else {
+                            currentField += char;
+                        }
+                    }
+                    result.push(currentField);
+                    return result.map(f => f.replace(/^"|"$/g, '').trim());
+                }
+                
                 if (extension === 'csv') {
                     reader.onload = (e) => {
-                        const lines = e.target.result.split(/\r?\n/);
+                        const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
                         const delimiter = lines[0].includes(';') ? ';' : ',';
                         const headers = parseCSVLine(lines[0], delimiter).map(h => h.toLowerCase());
                         const data = [];
                         for (let i = 1; i < lines.length; i++) {
                             if (!lines[i] || !lines[i].trim()) continue;
                             const row = parseCSVLine(lines[i], delimiter);
-                            data.push(row);
+                            if (row.length === headers.length) {
+                                data.push(row);
+                            }
                         }
                         resolve({ headers, data });
                     };
@@ -459,81 +549,46 @@
         // ========== IMPORT ATTENDANCE ==========
         async function importAttendance(file) {
             const { headers, data } = await parseExcelFile(file);
-
-            const idxId = headers.findIndex(h => h === 'id' || h === 'user id' || h === 'no' || h === 'no.');
+            
+            const idxId = headers.findIndex(h => h === 'id' || h === 'user id' || h === 'no');
             const idxFullName = headers.findIndex(h => h === 'full name' || h === 'fullname' || h === 'name');
             const idxName = headers.findIndex(h => h === 'name' || h === 'nickname');
             const idxEmail = headers.findIndex(h => h === 'email' || h === 'mail');
-            const idxPhone = headers.findIndex(h => h === 'phone' || h === 'mobile' || h === 'telp');
-            const idxCompany = headers.findIndex(h => h === 'company' || h === 'perusahaan' || h === 'company name');
+            const idxPhone = headers.findIndex(h => h === 'phone' || h === 'mobile');
+            const idxCompany = headers.findIndex(h => h === 'company' || h === 'perusahaan');
             const idxLuckyCode = headers.findIndex(h => h === 'lucky number' || h === 'luckynumber' || h === 'lucky_code');
             const idxTableNumber = headers.findIndex(h => h === 'table number' || h === 'table' || h === 'table_no');
-            const idxAttendedAt = headers.findIndex(h => h === 'attended at' || h === 'attended_at');
-            const idxCreatedAt = headers.findIndex(h => h === 'created at' || h === 'created_at');
             
-            if (idxId === -1 && idxFullName === -1) {
-                throw new Error('Column "ID" or "Full Name" not found! Please check your file.');
-            }
-            if (idxLuckyCode === -1) {
-                throw new Error('Column "Lucky Number" not found!');
-            }
+            if (idxLuckyCode === -1) throw new Error('Column "Lucky Number" not found!');
             
             const records = [];
             const usedLuckyCodes = new Set();
-            const usedIds = new Set();
-            let importedCount = 0;
-            let skippedCount = 0;
             
             for (const row of data) {
                 let rawId = '';
-                if (idxId !== -1 && row[idxId]) {
-                    rawId = String(row[idxId] || '').trim();
-                }
-                if (!rawId) {
-                    rawId = generateUUID();
-                    console.log(`Generated ID: ${rawId}`);
-                }
-                
-                if (usedIds.has(rawId)) {
-                    rawId = generateUUID();
-                    console.warn(`Duplicate ID, generated new: ${rawId}`);
-                }
-                usedIds.add(rawId);
+                if (idxId !== -1 && row[idxId]) rawId = String(row[idxId] || '').trim();
+                if (!rawId) rawId = generateUUID();
                 
                 let luckyCode = '';
-                if (idxLuckyCode !== -1 && row[idxLuckyCode]) {
-                    luckyCode = String(row[idxLuckyCode] || '').trim();
-                }
-                
+                if (idxLuckyCode !== -1 && row[idxLuckyCode]) luckyCode = String(row[idxLuckyCode] || '').trim();
                 if (!luckyCode || !/^\d{4}$/.test(luckyCode)) {
-                    do {
-                        luckyCode = Math.floor(1000 + Math.random() * 9000).toString();
-                    } while (usedLuckyCodes.has(luckyCode));
-                    console.warn(`Generated lucky code for ${rawId}: ${luckyCode}`);
+                    do { luckyCode = Math.floor(1000 + Math.random() * 9000).toString(); } while (usedLuckyCodes.has(luckyCode));
                 }
                 if (usedLuckyCodes.has(luckyCode)) {
-                    do {
-                        luckyCode = Math.floor(1000 + Math.random() * 9000).toString();
-                    } while (usedLuckyCodes.has(luckyCode));
+                    do { luckyCode = Math.floor(1000 + Math.random() * 9000).toString(); } while (usedLuckyCodes.has(luckyCode));
                 }
                 usedLuckyCodes.add(luckyCode);
                 
                 let namaValue = '';
-                if (idxFullName !== -1 && row[idxFullName]) {
-                    namaValue = String(row[idxFullName] || '').trim();
-                } else if (idxName !== -1 && row[idxName]) {
-                    namaValue = String(row[idxName] || '').trim();
-                } else {
-                    namaValue = "Attendee " + rawId;
-                }
+                if (idxFullName !== -1 && row[idxFullName]) namaValue = String(row[idxFullName] || '').trim();
+                else if (idxName !== -1 && row[idxName]) namaValue = String(row[idxName] || '').trim();
+                else namaValue = "Attendee " + rawId;
                 
                 const nameClean = (idxName !== -1 && row[idxName]) ? String(row[idxName] || '').trim() : '';
                 const emailClean = (idxEmail !== -1 && row[idxEmail]) ? String(row[idxEmail] || '').trim() : '';
                 const phoneClean = (idxPhone !== -1 && row[idxPhone]) ? String(row[idxPhone] || '').trim() : '';
                 const companyClean = (idxCompany !== -1 && row[idxCompany]) ? String(row[idxCompany] || '').trim() : '-';
                 const tableNumber = (idxTableNumber !== -1 && row[idxTableNumber]) ? String(row[idxTableNumber] || '').trim() : '';
-                const attendedAt = (idxAttendedAt !== -1 && row[idxAttendedAt]) ? String(row[idxAttendedAt] || '').trim() : '';
-                const createdAt = (idxCreatedAt !== -1 && row[idxCreatedAt]) ? String(row[idxCreatedAt] || '').trim() : new Date().toISOString();
                 
                 records.push({
                     id: rawId,
@@ -543,15 +598,11 @@
                     email: emailClean,
                     phone: phoneClean,
                     company: companyClean,
-                    table_number: tableNumber,      
-                    attended_at: attendedAt,       
+                    table_number: tableNumber,
                     is_winner: 0,
-                    created_at: createdAt
+                    created_at: new Date().toISOString()
                 });
-                
-                importedCount++;
             }
-            
             return records;
         }
 
@@ -559,27 +610,19 @@
         async function importPrizes(file) {
             const { headers, data } = await parseExcelFile(file);
             
-            console.log('📋 Prize Headers:', headers);
-            
-            const idxId = headers.findIndex(h => h === 'id');
             const idxType = headers.findIndex(h => h === 'type');
-            const idxItemType = headers.findIndex(h => h === 'item type');
             const idxRound = headers.findIndex(h => h === 'round');
             const idxName = headers.findIndex(h => h === 'name');
             const idxDescription = headers.findIndex(h => h === 'description');
-            const idxLink = headers.findIndex(h => h === 'link');
             const idxPrice = headers.findIndex(h => h === 'price');
             const idxPicture = headers.findIndex(h => h === 'picture');
-            const idxCreatedAt = headers.findIndex(h => h === 'created at');
-            const idxUpdatedAt = headers.findIndex(h => h === 'updated at');
+            const idxAttachedTable = headers.findIndex(h => h === 'attached table' || h === 'attached_table' || h === 'table');
             
             if (idxType === -1) throw new Error('Column "Type" not found!');
             if (idxName === -1) throw new Error('Column "Name" not found!');
             
             const prizes = [];
             let maxRound = 0;
-            let importedCount = 0;
-            let skippedCount = 0;
             
             for (const row of data) {
                 const type = String(row[idxType] || '').trim();
@@ -588,54 +631,55 @@
                 const description = idxDescription !== -1 ? String(row[idxDescription] || '').trim() : '';
                 const price = idxPrice !== -1 ? String(row[idxPrice] || '').trim() : 'RM 0';
                 const picture = idxPicture !== -1 ? String(row[idxPicture] || '').trim() : '';
-                const link = idxLink !== -1 ? String(row[idxLink] || '').trim() : '';
-                const itemType = idxItemType !== -1 ? String(row[idxItemType] || '').trim() : 'product';
-                const id = idxId !== -1 ? String(row[idxId] || '').trim() : generateUUID();
-                const createdAt = idxCreatedAt !== -1 ? String(row[idxCreatedAt] || '').trim() : new Date().toISOString();
+                const attachedTable = idxAttachedTable !== -1 && row[idxAttachedTable] ? String(row[idxAttachedTable] || '').trim() : '';
                 
-                if (!type || !name) {
-                    skippedCount++;
-                    continue;
-                }
-                
+                if (!type || !name) continue;
                 if (round > maxRound) maxRound = round;
                 
                 prizes.push({
-                    id: id,
+                    id: generateUUID(),
                     type: type,
-                    item_type: itemType,
+                    item_type: 'product',
                     round: round,
                     name: name,
                     description: description,
-                    link: link,
+                    link: '',
                     price: price,
                     picture: picture,
                     is_drawn: 0,
-                    created_at: createdAt,
+                    created_at: new Date().toISOString(),
                     updated_at: new Date().toISOString()
                 });
-                
-                importedCount++;
             }
-            
-            console.log(`📊 Imported ${importedCount} prizes, skipped ${skippedCount}`);
             
             const stages = [];
             for (let r = 1; r <= maxRound; r++) {
                 const roundPrizes = prizes.filter(p => p.round === r);
                 if (roundPrizes.length > 0) {
-                    const typeLabel = roundPrizes[0].type.replace('_', ' ').toUpperCase();
+                    const firstPrize = roundPrizes[0];
+                    const isTableType = firstPrize.type.toLowerCase().includes('table') || firstPrize.type.toLowerCase().includes('meja');
+                    const drawType = isTableType ? 'table' : 'user';
+                    let attachedTable = '';
+                    if (drawType === 'table') attachedTable = `Table ${r}`;
+                    
+                    let prizePrice = 0;
+                    if (firstPrize.price) {
+                        const cleaned = String(firstPrize.price).replace(/[^0-9.]/g, '');
+                        prizePrice = parseFloat(cleaned) || 0;
+                    }
+                    
                     stages.push({
                         id: r,
                         stage_name: `Round ${r}`,
-                        prize_name: `${typeLabel} ${r}`,
-                        prize_price: roundPrizes.reduce((sum, p) => {
-                            const priceMatch = p.price.match(/\d+/);
-                            return sum + (priceMatch ? parseInt(priceMatch[0]) : 0);
-                        }, 0),
+                        prize_name: firstPrize.name,
+                        prize_price: prizePrice,
                         quota: roundPrizes.length,
                         sequence: r,
-                        drawn_count: 0
+                        drawn_count: 0,
+                        draw_type: drawType,
+                        attached_table: attachedTable,
+                        prize_description: firstPrize.description || `${firstPrize.type} ${r}`,
+                        type_label: firstPrize.type.toUpperCase().replace(/_/g, ' ')
                     });
                 }
             }
@@ -643,83 +687,367 @@
             return { prizes, stages };
         }
 
+        // ========== IMPORT TABLES (CSV Format: ID, Number, Name, Created At, Updated At) ==========
+        async function importTables(file) {
+            const { headers, data } = await parseExcelFile(file);
+            
+            const idxId = headers.findIndex(h => h === 'id');
+            const idxNumber = headers.findIndex(h => h === 'number');
+            const idxName = headers.findIndex(h => h === 'name');
+            const idxCreatedAt = headers.findIndex(h => h === 'created at');
+            const idxUpdatedAt = headers.findIndex(h => h === 'updated at');
+            
+            if (idxNumber === -1) throw new Error('Column "Number" not found!');
+            if (idxName === -1) throw new Error('Column "Name" not found!');
+            
+            const records = [];
+            for (const row of data) {
+                const id = idxId !== -1 ? String(row[idxId] || '').trim() : generateUUID();
+                const number = String(row[idxNumber] || '').trim();
+                const name = String(row[idxName] || '').trim();
+                const created_at = idxCreatedAt !== -1 ? String(row[idxCreatedAt] || '').trim() : new Date().toISOString();
+                const updated_at = idxUpdatedAt !== -1 ? String(row[idxUpdatedAt] || '').trim() : new Date().toISOString();
+                
+                if (!number || !name) continue;
+                
+                records.push({
+                    id: id,
+                    number: parseInt(number) || 0,
+                    name: name,
+                    created_at: created_at,
+                    updated_at: updated_at
+                });
+            }
+            
+            return records;
+        }
+
         // ========== IMPORT TO INDEXEDDB ==========
-        async function importToIndexedDB(storeName, records, onProgress) {
+        async function importToIndexedDB(storeName, records) {
             return new Promise((resolve, reject) => {
                 const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
                 request.onsuccess = function(event) {
                     const db = event.target.result;
-
                     if (!db.objectStoreNames.contains(storeName)) {
                         db.close();
-                        reject(new Error(`Tabel '${storeName}' tidak ditemukan di database. Silakan reset storage atau naikkan CURRENT_VERSION di db-config.js.`));
+                        reject(new Error(`Table '${storeName}' not found`));
                         return;
                     }
-
-                    const transaction = db.transaction([storeName], "readwrite");
-                    const store = transaction.objectStore(storeName);
-                    
-                    let imported = 0;
-                    let errors = 0;
-                    
+                    const tx = db.transaction([storeName], "readwrite");
+                    const store = tx.objectStore(storeName);
+                    let imported = 0, errors = 0;
                     records.forEach((record) => {
                         const addRequest = store.add(record);
-                        addRequest.onsuccess = () => {
-                            imported++;
-                            if (onProgress) onProgress(imported + errors, records.length);
-                        };
-                        addRequest.onerror = (err) => {
-                            console.error("Error:", err.target.error);
-                            errors++;
-                            if (onProgress) onProgress(imported + errors, records.length);
-                        };
+                        addRequest.onsuccess = () => imported++;
+                        addRequest.onerror = () => errors++;
                     });
-                    
-                    transaction.oncomplete = () => { db.close(); resolve({ imported, errors }); };
-                    transaction.onerror = () => reject(transaction.error);
+                    tx.oncomplete = () => { db.close(); resolve({ imported, errors }); };
+                    tx.onerror = () => { db.close(); reject(tx.error); };
                 };
                 request.onerror = () => reject(request.error);
             });
         }
 
-        // ========== SET WINNER FUNCTIONS ==========
-        async function previewSetWinnerFile(file) {
-            try {
+        // ========== UPLOAD HANDLERS ==========
+        function setupUpload(btnId, fileInputId, dropzoneId, contentId, importFn, storeName, extraFn) {
+            const btn = $(`#${btnId}`);
+            const fileInput = $(`#${fileInputId}`);
+            const dropzone = $(`#${dropzoneId}`);
+            const content = $(`#${contentId}`);
+            
+            btn.on('click', function(e) { e.stopPropagation(); fileInput.click(); });
+            dropzone.on('click', function(e) { e.stopPropagation(); fileInput.click(); });
+            dropzone.on('dragover', function(e) { e.preventDefault(); $(this).addClass('drag-over'); });
+            dropzone.on('dragleave', function(e) { e.preventDefault(); $(this).removeClass('drag-over'); });
+            dropzone.on('drop', function(e) {
+                e.preventDefault();
+                $(this).removeClass('drag-over');
+                const files = e.originalEvent.dataTransfer.files;
+                if (files[0]) {
+                    fileInput[0].files = files;
+                    handleFile(files[0]);
+                }
+            });
+            fileInput.on('change', function(e) {
+                if (e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+            });
+            
+            async function handleFile(file) {
+                $('#progress-section').removeClass('hidden');
+                $('#result-section').addClass('hidden');
+                $('#progress-bar').css('width', '20%');
+                $('#progress-status-text').text('Reading file...');
+                
+                try {
+                    const result = await importFn(file);
+                    let recordsToImport = result;
+                    let isPrizesImport = false;
+                    
+                    if (result && typeof result === 'object' && result.prizes && result.stages) {
+                        isPrizesImport = true;
+                        recordsToImport = result.prizes;
+                    }
+                    
+                    if (!Array.isArray(recordsToImport)) {
+                        throw new Error('Invalid data format: expected array');
+                    }
+                    
+                    $('#progress-bar').css('width', '50%');
+                    $('#progress-status-text').text(`Importing ${recordsToImport.length} records...`);
+                    
+                    await clearStore(storeName);
+                    if (extraFn) await extraFn();
+                    
+                    const importResult = await importToIndexedDB(storeName, recordsToImport);
+                    
+                    if (isPrizesImport && result.stages && result.stages.length > 0) {
+                        $('#progress-status-text').text(`Importing ${result.stages.length} stages...`);
+                        await clearStore('draw_stages');
+                        await importToIndexedDB('draw_stages', result.stages);
+                    }
+                    
+                    $('#progress-bar').css('width', '100%');
+                    $('#progress-status-text').text('Import complete!');
+                    
+                    $('#result-section').removeClass('hidden');
+                    $('#result-message').html(`
+                        <div class="bg-green-50/90 text-stone-900 border-emerald-600/20 p-4 rounded-xl">
+                            <div class="flex items-center gap-2 text-emerald-700">
+                                <span class="font-bold text-sm">✅ Import Successful</span>
+                            </div>
+                            <p class="text-xs text-stone-600 leading-relaxed mt-2">
+                                Loaded <strong>${importResult.imported}</strong> records.
+                                ${importResult.errors > 0 ? `⚠️ ${importResult.errors} records skipped` : 'All records imported successfully.'}
+                                ${isPrizesImport && result.stages ? `<br>Stages: ${result.stages.length} round(s) created.` : ''}
+                            </p>
+                        </div>
+                    `);
+                    
+                    setTimeout(() => { $('#result-section').addClass('hidden'); }, 3000);
+                    
+                    content.html(`
+                        <p class="text-sm font-semibold text-emerald-600">✅ ${recordsToImport.length} records imported</p>
+                        <p class="text-xs text-stone-400">${file.name}</p>
+                    `);
+                    
+                    loadTabData(currentTab);
+                } catch (err) {
+                    console.error('Import error:', err);
+                    $('#result-section').removeClass('hidden');
+                    $('#result-message').html(`
+                        <div class="bg-red-50 text-red-900 border-red-200/50 p-4 rounded-xl text-xs font-mono">
+                            ❌ Error: ${err.message}
+                        </div>
+                    `);
+                    setTimeout(() => { $('#result-section').addClass('hidden'); }, 4000);
+                } finally {
+                    setTimeout(() => { $('#progress-section').addClass('hidden'); }, 1000);
+                }
+            }
+        }
+
+        // ========== CLEAR HANDLERS ==========
+        function setupClear(btnId, storeName) {
+            $(`#${btnId}`).click(async function() {
+                if (!confirm(`⚠️ Delete all ${storeName} data?`)) return;
+                try {
+                    await clearStore(storeName);
+                    loadTabData(currentTab);
+                    const contentId = currentTab === 'attendance' ? 'dropzone-content-attendance' : 
+                                     currentTab === 'prizes' ? 'dropzone-content-prizes' : 
+                                     currentTab === 'setwinner' ? 'dropzone-content-setwinner' : 'dropzone-content-tables';
+                    const iconMap = {
+                        'attendance': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path></svg>`,
+                        'prizes': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>`,
+                        'setwinner': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>`,
+                        'tables': `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>`
+                    };
+                    $(`#${contentId}`).html(`
+                        <div class="w-10 h-10 ${currentTab === 'setwinner' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' : currentTab === 'tables' ? 'bg-blue-50 text-blue-800 border-blue-200' : 'bg-amber-50 text-amber-800 border-amber-200'} rounded-xl flex items-center justify-center mx-auto group-hover:scale-105 transition-transform">
+                            ${iconMap[currentTab] || iconMap.attendance}
+                        </div>
+                        <p class="text-xs text-stone-500">Drop Excel/CSV here or click to browse</p>
+                        ${currentTab === 'tables' ? '<p class="text-[10px] text-stone-400">Format: ID, Number, Name, Created At, Updated At</p>' : ''}
+                    `);
+                    $('#file-attendance').val('');
+                    $('#file-prizes').val('');
+                    $('#file-setwinner').val('');
+                    $('#file-tables').val('');
+                    $('#result-section').addClass('hidden');
+                } catch (err) {
+                    alert('Failed to clear: ' + err.message);
+                }
+            });
+        }
+
+        // ========== LOAD ATTENDANCE DATA ==========
+        async function loadAttendanceData() {
+            const data = await getDataFromStore('attendances');
+            const total = data.length;
+            $('#attendance-total').text(total);
+            $('#attendance-count').text(total);
+            
+            const tbody = $('#attendance-table-body');
+            tbody.empty();
+            
+            if (total === 0) {
+                $('#attendance-table-wrapper').addClass('hidden');
+                return;
+            }
+            $('#attendance-table-wrapper').removeClass('hidden');
+            
+            data.forEach(record => {
+                tbody.append(`
+                    <tr class="border-b border-stone-100 hover:bg-stone-50">
+                        <td class="px-3 py-2 font-mono font-bold text-indigo-700">${record.lucky_code || '-'}</td>
+                        <td class="px-3 py-2 font-medium text-stone-700">${record.nama || record.name || '-'}</td>
+                        <td class="px-3 py-2 text-stone-600">${record.email || '-'}</td>
+                        <td class="px-3 py-2 text-stone-600">${record.phone || '-'}</td>
+                        <td class="px-3 py-2 text-stone-600">${record.company || '-'}</td>
+                        <td class="px-3 py-2 text-stone-600">${record.table_number || '-'}</td>
+                        <td class="px-3 py-2">
+                            <span class="text-xs font-bold ${record.is_winner ? 'text-green-600' : 'text-stone-400'}">
+                                ${record.is_winner ? '✅ Yes' : 'No'}
+                            </span>
+                        </td>
+                    </tr>
+                `);
+            });
+        }
+
+        // ========== LOAD PRIZES DATA ==========
+        async function loadPrizesData() {
+            const data = await getDataFromStore('prizes');
+            const total = data.length;
+            $('#prizes-total').text(total);
+            $('#prizes-count').text(total);
+            
+            const tbody = $('#prizes-table-body');
+            tbody.empty();
+            
+            if (total === 0) {
+                $('#prizes-table-wrapper').addClass('hidden');
+                return;
+            }
+            $('#prizes-table-wrapper').removeClass('hidden');
+            
+            data.forEach(record => {
+                tbody.append(`
+                    <tr class="border-b border-stone-100 hover:bg-stone-50">
+                        <td class="px-3 py-2">
+                            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">${record.type || '-'}</span>
+                        </td>
+                        <td class="px-3 py-2 font-medium text-stone-700">${record.round || 1}</td>
+                        <td class="px-3 py-2 font-medium text-stone-700">${record.name || '-'}</td>
+                        <td class="px-3 py-2 text-stone-600 max-w-[120px] truncate" title="${record.description || ''}">${record.description || '-'}</td>
+                        <td class="px-3 py-2 font-medium text-stone-700">${record.price || 'RM 0'}</td>
+                        <td class="px-3 py-2">
+                            <span class="text-xs font-bold ${record.is_drawn ? 'text-red-600' : 'text-green-600'}">
+                                ${record.is_drawn ? '✅ Drawn' : 'Available'}
+                            </span>
+                        </td>
+                    </tr>
+                `);
+            });
+        }
+
+        // ========== LOAD SET WINNER DATA ==========
+        async function loadSetWinnerData() {
+            const data = await getDataFromStore('standalone_preset');
+            const total = data.length;
+            $('#setwinner-total').text(total);
+            $('#setwinner-count-badge').text(total);
+            
+            const tbody = $('#setwinner-table-body');
+            tbody.empty();
+            
+            if (total === 0) {
+                $('#setwinner-table-wrapper').addClass('hidden');
+                return;
+            }
+            $('#setwinner-table-wrapper').removeClass('hidden');
+            
+            data.forEach(record => {
+                const statusColors = {
+                    'pending': 'text-yellow-600 bg-yellow-50',
+                    'done': 'text-green-600 bg-green-50',
+                    'cancelled': 'text-red-600 bg-red-50'
+                };
+                const statusClass = statusColors[record.status] || 'text-stone-600 bg-stone-50';
+                
+                tbody.append(`
+                    <tr class="border-b border-stone-100 hover:bg-stone-50">
+                        <td class="px-3 py-2 font-medium text-stone-700">${record.prize_name || '-'}</td>
+                        <td class="px-3 py-2 font-medium text-stone-700">${record.winner_name || '-'}</td>
+                        <td class="px-3 py-2 font-mono font-bold text-indigo-700">${record.lucky_number || '-'}</td>
+                        <td class="px-3 py-2 text-stone-600">${record.winner_email || '-'}</td>
+                        <td class="px-3 py-2 text-stone-600">${record.table_number || '-'}</td>
+                        <td class="px-3 py-2">
+                            <span class="text-xs font-medium px-2 py-0.5 rounded-full ${statusClass}">${record.status || 'pending'}</span>
+                        </td>
+                    </tr>
+                `);
+            });
+        }
+
+        // ========== LOAD TABLES DATA ==========
+        async function loadTablesData() {
+            const data = await getDataFromStore('tables');
+            const total = data.length;
+            $('#tables-total').text(total);
+            $('#tables-count').text(total);
+            
+            const tbody = $('#tables-table-body');
+            tbody.empty();
+            
+            if (total === 0) {
+                $('#tables-table-wrapper').addClass('hidden');
+                return;
+            }
+            $('#tables-table-wrapper').removeClass('hidden');
+            
+            data.sort((a, b) => a.number - b.number).forEach(record => {
+                tbody.append(`
+                    <tr class="border-b border-stone-100 hover:bg-stone-50">
+                        <td class="px-3 py-2 font-mono text-xs text-stone-500">${record.id || '-'}</td>
+                        <td class="px-3 py-2 font-bold text-stone-700">${record.number || '-'}</td>
+                        <td class="px-3 py-2 font-medium text-stone-700">${record.name || '-'}</td>
+                        <td class="px-3 py-2 text-stone-500 text-xs">${record.created_at || '-'}</td>
+                        <td class="px-3 py-2 text-stone-500 text-xs">${record.updated_at || '-'}</td>
+                    </tr>
+                `);
+            });
+        }
+
+        // ========== SETUP UPLOADS ==========
+        setupUpload(
+            'btn-upload-attendance', 'file-attendance', 'dropzone-attendance', 'dropzone-content-attendance',
+            importAttendance, 'attendances'
+        );
+
+        setupUpload(
+            'btn-upload-prizes', 'file-prizes', 'dropzone-prizes', 'dropzone-content-prizes',
+            importPrizes, 'prizes', async () => { await clearStore('draw_stages'); }
+        );
+
+        setupUpload(
+            'btn-upload-setwinner', 'file-setwinner', 'dropzone-setwinner', 'dropzone-content-setwinner',
+            async (file) => {
                 const { headers, data } = await parseExcelFile(file);
                 
                 const idxPrizeName = headers.findIndex(h => h === 'prize name' || h === 'prize_name');
                 const idxWinnerName = headers.findIndex(h => h === 'winner name' || h === 'winner_name');
-                const idxLuckyNumber = headers.findIndex(h => h === 'lucky number' || h === 'lucky_number' || h === 'lucky_no');
+                const idxLuckyNumber = headers.findIndex(h => h === 'lucky number' || h === 'lucky_number');
                 const idxWinnerEmail = headers.findIndex(h => h === 'winner email' || h === 'winner_email');
                 const idxTableNumber = headers.findIndex(h => h === 'table number' || h === 'table_number');
                 const idxPrizeType = headers.findIndex(h => h === 'prize type' || h === 'prize_type');
                 const idxPrizePrice = headers.findIndex(h => h === 'prize price' || h === 'prize_price');
                 
-                if (idxPrizeName === -1) {
-                    alert('Column "Prize Name" not found!');
-                    $('#btn-import').prop('disabled', true);
-                    return;
-                }
-                if (idxWinnerName === -1) {
-                    alert('Column "Winner Name" not found!');
-                    $('#btn-import').prop('disabled', true);
-                    return;
-                }
-                if (idxLuckyNumber === -1) {
-                    alert('Column "Lucky Number" not found!');
-                    $('#btn-import').prop('disabled', true);
-                    return;
-                }
+                if (idxPrizeName === -1) throw new Error('Column "Prize Name" not found!');
+                if (idxWinnerName === -1) throw new Error('Column "Winner Name" not found!');
+                if (idxLuckyNumber === -1) throw new Error('Column "Lucky Number" not found!');
                 
-                const prizes = await getPrizes();
-                
-                setWinnerData = [];
-                const tableBody = $('#setwinner-preview-body');
-                tableBody.empty();
-                
-                let validCount = 0;
-                let invalidCount = 0;
-                
+                const records = [];
                 for (const row of data) {
                     const prizeName = String(row[idxPrizeName] || '').trim();
                     const winnerName = String(row[idxWinnerName] || '').trim();
@@ -731,442 +1059,57 @@
                     
                     if (!prizeName || !winnerName || !luckyNumber) continue;
                     
-                    const matchedPrize = prizes.find(p => 
-                        p.name.toLowerCase().includes(prizeName.toLowerCase()) ||
-                        prizeName.toLowerCase().includes(p.name.toLowerCase())
-                    );
-                    
-                    const isValid = !!matchedPrize && matchedPrize.is_drawn !== 1;
-                    
-                    let statusMessage = '';
-                    let statusColor = '';
-                    if (!matchedPrize) {
-                        statusMessage = '❌ Prize Not Found';
-                        statusColor = 'text-red-600';
-                    } else if (matchedPrize.is_drawn === 1) {
-                        statusMessage = '⛔ Already Drawn';
-                        statusColor = 'text-red-600';
-                    } else {
-                        statusMessage = '✅ Valid';
-                        statusColor = 'text-green-600';
-                    }
-                    
-                    setWinnerData.push({
-                        prizeName,
-                        winnerName,
-                        luckyNumber,
-                        winnerEmail,
-                        tableNumber,
-                        prizeType,
-                        prizePrice,
-                        matchedPrize,
-                        isValid
+                    records.push({
+                        id: 'pw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6),
+                        round: 1,
+                        prize_name: prizeName,
+                        winner_name: winnerName,
+                        lucky_number: luckyNumber,
+                        winner_email: winnerEmail,
+                        table_number: tableNumber,
+                        prize_type: prizeType,
+                        prize_price: prizePrice,
+                        prize_link: '',
+                        prize_description: '',
+                        prize_picture: '',
+                        status: 'pending',
+                        created_at: new Date().toISOString()
                     });
-                    
-                    if (isValid) validCount++;
-                    else invalidCount++;
-                    
-                    tableBody.append(`
-                        <tr class="border-b border-stone-100 ${isValid ? 'hover:bg-green-50' : 'hover:bg-red-50'}">
-                            <td class="px-3 py-2 font-medium text-stone-700 max-w-[120px] truncate" title="${prizeName}">${prizeName}</td>
-                            <td class="px-3 py-2 font-medium text-stone-700">${winnerName}</td>
-                            <td class="px-3 py-2 font-mono font-bold text-indigo-700">${luckyNumber}</td>
-                            <td class="px-3 py-2">
-                                <span class="text-xs font-bold ${statusColor}">${statusMessage}</span>
-                            </td>
-                        </tr>
-                    `);
                 }
-                
-                $('#setwinner-count').text(`✅ ${validCount} valid | ⚠️ ${invalidCount} issues`);
-                $('#setwinner-preview').removeClass('hidden');
-                
-                $('#btn-import').prop('disabled', validCount === 0);
-                
-            } catch (err) {
-                console.error('Preview error:', err);
-                alert('Error reading file: ' + err.message);
-                $('#btn-import').prop('disabled', true);
-            }
-        }
+                return records;
+            },
+            'standalone_preset'
+        );
 
-        // ========== IMPORT SET WINNER ==========
-        async function importSetWinner() {
-            const validData = setWinnerData.filter(d => d.isValid);
-            if (validData.length === 0) {
-                alert('No valid data to import!');
-                return;
-            }
-            
-            if (!confirm(`Import ${validData.length} set winner(s)?`)) return;
-            
-            $('#progress-section').removeClass('hidden');
-            $('#btn-import').prop('disabled', true).text('Importing...');
-            $('#progress-bar').css('width', '0%');
-            $('#progress-status-text').text('📊 Importing set winners...');
-            
-            try {
-                let imported = 0;
-                let errors = 0;
-                const errorList = [];
-                
-                for (let i = 0; i < validData.length; i++) {
-                    const data = validData[i];
-                    const prize = data.matchedPrize;
-                    
-                    try {
-                         await window.saveStandalonePreset({
-                            id: 'pw_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6) + '_' + i,
-                            round: prize.round || 1,
-                            prize_name: data.prizeName,
-                            winner_name: data.winnerName,
-                            lucky_number: data.luckyNumber,
-                            winner_email: data.winnerEmail || '',
-                            table_number: data.tableNumber || '',
-                            prize_type: data.prizeType || prize.type || '',
-                            prize_price: data.prizePrice || prize.price || 'RM -',
-                            prize_link: prize.link || '',
-                            prize_description: prize.description || '',
-                            prize_picture: prize.picture || '',
-                            status: 'pending',
-                            created_at: new Date().toISOString()
-                        });
-                        imported++;
-                    } catch (err) {
-                        errors++;
-                        errorList.push(`${data.winnerName}: ${err.message}`);
-                    }
-                    
-                    const progress = Math.floor(((i + 1) / validData.length) * 100);
-                    $('#progress-bar').css('width', `${progress}%`);
-                    $('#progress-count').text(`${i + 1}/${validData.length}`);
-                }
-                
-                $('#progress-bar').css('width', '100%');
-                $('#progress-status-text').text('Import complete!');
-                
-                $('#result-section').removeClass('hidden');
-                $('#result-message').html(`
-                    <div class="bg-green-50/90 text-stone-900 border-emerald-600/20 p-5 rounded-xl">
-                        <div class="flex items-center gap-2 text-emerald-700">
-                            <span class="font-bold text-sm">✅ Set Winners Imported Successfully</span>
-                        </div>
-                        <p class="text-xs text-stone-600 leading-relaxed mt-2">
-                            Loaded <strong>${imported}</strong> set winners.<br>
-                            ${errors > 0 ? `⚠️ ${errors} records failed: ${errorList.join('; ')}` : 'All records imported successfully.'}
-                        </p>
-                        <div class="flex gap-2 pt-4">
-                            <a href="lucky-draw-action.html" class="btn-primary text-white text-xs font-semibold px-4 py-2 rounded-lg">Open Control Panel</a>
-                        </div>
-                    </div>
-                `);
-                
-            } catch (err) {
-                console.error('Import error:', err);
-                $('#result-section').removeClass('hidden');
-                $('#result-message').html(`
-                    <div class="bg-red-50 text-red-900 border-red-200/50 p-4 rounded-xl text-xs font-mono">
-                        ❌ Error: ${err.message}
-                    </div>
-                `);
-            } finally {
-                $('#btn-import').prop('disabled', false).text('Start Import Process');
-                setTimeout(() => {
-                    $('#progress-section').addClass('hidden');
-                }, 3000);
-            }
-        }
+        // ========== SETUP TABLES UPLOAD ==========
+        setupUpload(
+            'btn-upload-tables', 'file-tables', 'dropzone-tables', 'dropzone-content-tables',
+            importTables, 'tables'
+        );
 
-        // ========== DROPZONE SETUP ==========
-        function setupDropzone(dropzoneId, fileInputId, contentId, type) {
-            const dropzone = $(`#${dropzoneId}`);
-            const fileInput = $(`#${fileInputId}`);
-            const content = $(`#${contentId}`);
-            
-            dropzone.on('click', function(e) {
-                e.stopPropagation();
-                fileInput.click();
-            });
-            
-            fileInput.on('change', function(e) {
-                if (e.target.files && e.target.files[0]) {
-                    const file = e.target.files[0];
-                    selectedFile = file;
-                    const sizeKb = (file.size / 1024).toFixed(1);
-                    $('#file-name').text(file.name);
-                    $('#file-size').text(`${sizeKb} KB`);
-                    $('#file-info').removeClass('hidden');
-                    
-                    content.html(`
-                        <p class="text-sm font-semibold text-emerald-600">File attached</p>
-                        <p class="text-xs text-stone-400">${file.name} (${sizeKb} KB)</p>
-                    `);
-                    
-                    if (type === 'setwinner') {
-                        previewSetWinnerFile(file);
-                    }
-                    
-                    $('#btn-import').prop('disabled', false);
-                }
-            });
-            
-            dropzone.on('dragover', function(e) {
-                e.preventDefault();
-                $(this).addClass('drag-over');
-            });
-            
-            dropzone.on('dragleave', function(e) {
-                e.preventDefault();
-                $(this).removeClass('drag-over');
-            });
-            
-            dropzone.on('drop', function(e) {
-                e.preventDefault();
-                $(this).removeClass('drag-over');
-                const files = e.originalEvent.dataTransfer.files;
-                if (files[0]) {
-                    selectedFile = files[0];
-                    fileInput[0].files = files;
-                    const sizeKb = (selectedFile.size / 1024).toFixed(1);
-                    $('#file-name').text(selectedFile.name);
-                    $('#file-size').text(`${sizeKb} KB`);
-                    $('#file-info').removeClass('hidden');
-                    
-                    content.html(`
-                        <p class="text-sm font-semibold text-emerald-600">File attached</p>
-                        <p class="text-xs text-stone-400">${selectedFile.name} (${sizeKb} KB)</p>
-                    `);
-                    
-                    if (type === 'setwinner') {
-                        previewSetWinnerFile(selectedFile);
-                    }
-                    
-                    $('#btn-import').prop('disabled', false);
-                }
-            });
-        }
+        // ========== SETUP CLEARS ==========
+        setupClear('btn-clear-attendance', 'attendances');
+        setupClear('btn-clear-prizes', 'prizes');
+        setupClear('btn-clear-setwinner', 'standalone_preset');
+        setupClear('btn-clear-tables', 'tables');
 
-        // Setup all dropzones
-        setupDropzone('dropzone-attendance', 'file-attendance', 'dropzone-content-attendance', 'attendance');
-        setupDropzone('dropzone-prizes', 'file-prizes', 'dropzone-content-prizes', 'prizes');
-        setupDropzone('dropzone-setwinner', 'file-setwinner', 'dropzone-content-setwinner', 'setwinner');
-
-        // ========== MAIN IMPORT HANDLER ==========
-        $('#btn-import').click(async function() {
-            if (!selectedFile) {
-                showMsgBox('No File Selected', 'Please select a file to import.');
-                return;
-            }
-            
-            // Jika tab setwinner, jalankan import set winner
-            if (currentTab === 'setwinner') {
-                await importSetWinner();
-                return;
-            }
-            
-            // ... existing code for attendance and prizes ...
-            $('#progress-section').removeClass('hidden');
-            $('#result-section').addClass('hidden');
-            $('#btn-import').prop('disabled', true).text('Processing...');
-            $('#progress-bar').css('width', '20%');
-            $('#progress-status-text').text('Reading file...');
-            
-            try {
-                if (currentTab === 'attendance') {
-                    // Import Attendance
-                    $('#progress-status-text').text('Parsing attendance data...');
-                    const records = await importAttendance(selectedFile);
-                    $('#progress-bar').css('width', '50%');
-                    $('#progress-status-text').text(`Importing ${records.length} attendees...`);
-                    
-                    await clearSpecificData(['attendances']);
-                    
-                    const result = await importToIndexedDB('attendances', records, (processed, total) => {
-                        const pct = Math.floor((processed / total) * 30);
-                        $('#progress-bar').css('width', `${50 + pct}%`);
-                        $('#progress-count').text(`${processed}/${total}`);
-                    });
-                    
-                    $('#progress-bar').css('width', '100%');
-                    $('#progress-status-text').text('Import complete!');
-                    
-                    $('#result-section').removeClass('hidden');
-                    $('#result-message').html(`
-                        <div class="bg-green-50/90 text-stone-900 border-emerald-600/20 p-5 rounded-xl">
-                            <div class="flex items-center gap-2 text-emerald-700">
-                                <span class="font-bold text-sm">✅ Attendance Imported Successfully</span>
-                            </div>
-                            <p class="text-xs text-stone-600 leading-relaxed mt-2">
-                                Loaded <strong>${result.imported}</strong> attendees.<br>
-                                ${result.errors > 0 ? `⚠️ ${result.errors} records skipped` : 'All records imported successfully.'}
-                            </p>
-                            <div class="flex gap-2 pt-4">
-                                <a href="lucky-draw-action.html" class="btn-primary text-white text-xs font-semibold px-4 py-2 rounded-lg">Open Control Panel</a>
-                            </div>
-                        </div>
-                    `);
-                    
-                } else {
-                    // Import Prizes
-                    $('#progress-status-text').text('Parsing prize data...');
-                    const { prizes, stages } = await importPrizes(selectedFile);
-                    $('#progress-bar').css('width', '50%');
-                    $('#progress-status-text').text(`Importing ${prizes.length} prizes...`);
-                    
-                    await clearSpecificData(['prizes', 'draw_stages']);
-                    
-                    const stageResult = await importToIndexedDB('draw_stages', stages, (processed, total) => {
-                        const pct = Math.floor((processed / total) * 30);
-                        $('#progress-bar').css('width', `${50 + pct}%`);
-                        $('#progress-count').text(`Stages: ${processed}/${total}`);
-                    });
-                    
-                    const prizeResult = await importToIndexedDB('prizes', prizes, (processed, total) => {
-                        const pct = Math.floor((processed / total) * 20);
-                        $('#progress-bar').css('width', `${80 + pct}%`);
-                        $('#progress-count').text(`Prizes: ${processed}/${total}`);
-                    });
-                    
-                    $('#progress-bar').css('width', '100%');
-                    $('#progress-status-text').text('Import complete!');
-                    
-                    $('#result-section').removeClass('hidden');
-                    $('#result-message').html(`
-                        <div class="bg-green-50/90 text-stone-900 border-emerald-600/20 p-5 rounded-xl">
-                            <div class="flex items-center gap-2 text-emerald-700">
-                                <span class="font-bold text-sm">✅ Prizes Imported Successfully</span>
-                            </div>
-                            <p class="text-xs text-stone-600 leading-relaxed mt-2">
-                                Loaded <strong>${prizeResult.imported}</strong> prizes in <strong>${stageResult.imported}</strong> rounds.<br>
-                                ${prizeResult.errors > 0 ? `⚠️ ${prizeResult.errors} records skipped` : 'All records imported successfully.'}
-                            </p>
-                            <div class="flex gap-2 pt-4">
-                                <a href="lucky-draw-action.html" class="btn-primary text-white text-xs font-semibold px-4 py-2 rounded-lg">Open Control Panel</a>
-                            </div>
-                        </div>
-                    `);
-                }
-                
-            } catch (err) {
-                console.error('Import error:', err);
-                $('#result-section').removeClass('hidden');
-                $('#result-message').html(`
-                    <div class="bg-red-50 text-red-900 border-red-200/50 p-4 rounded-xl text-xs font-mono">
-                        ❌ Error: ${err.message}
-                    </div>
-                `);
-            } finally {
-                $('#btn-import').prop('disabled', false).text('Start Import Process');
-                setTimeout(() => {
-                    $('#progress-section').addClass('hidden');
-                }, 3000);
-            }
+        // ========== REFRESH ==========
+        $('#btn-refresh').click(function() {
+            loadTabData(currentTab);
+            $(this).find('svg').addClass('animate-spin');
+            setTimeout(() => { $(this).find('svg').removeClass('animate-spin'); }, 800);
         });
-
-        // ========== CLEAR BUTTON ==========
-        $('#btn-clear').click(async function() {
-            if (confirm('⚠️ WARNING: This will DELETE ALL DATA. Are you sure?')) {
-                try {
-                    await clearAllData();
-                    showMsgBox('Success', 'All data has been cleared.');
-                    selectedFile = null;
-                    $('#file-attendance').val('');
-                    $('#file-prizes').val('');
-                    $('#file-setwinner').val('');
-                    $('#file-info').addClass('hidden');
-                    $('#setwinner-preview').addClass('hidden');
-                    resetDropzoneContent('dropzone-content-attendance', 'attendance');
-                    resetDropzoneContent('dropzone-content-prizes', 'prizes');
-                    resetDropzoneContent('dropzone-content-setwinner', 'setwinner');
-                } catch (err) {
-                    showMsgBox('Error', 'Failed to clear data: ' + err.message);
-                }
-            }
-        });
-
-        // ========== MSG BOX FUNCTIONS ==========
-        function showMsgBox(title, message) {
-            alert(title + '\n\n' + message);
-        }
 
         // ========== INIT ==========
         $(document).ready(async function() {
             try {
                 await window.initDatabase();
                 console.log('Database initialized');
+                loadTabData('attendance');
             } catch (err) {
                 console.error('Database init failed:', err);
-                showMsgBox('Database Error', 'Failed to initialize database: ' + err.message);
             }
         });
-
-        async function clearSpecificData(storesToClear) {
-    return new Promise((resolve, reject) => {
-        const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
-        request.onsuccess = function(event) {
-            const db = event.target.result;
-            
-            const validStores = storesToClear.filter(name => db.objectStoreNames.contains(name));
-            
-            if (validStores.length === 0) {
-                db.close();
-                resolve();
-                return;
-            }
-            
-            const tx = db.transaction(validStores, "readwrite");
-            validStores.forEach(storeName => {
-                tx.objectStore(storeName).clear();
-            });
-            
-            tx.oncomplete = () => { 
-                db.close(); 
-                resolve(); 
-            };
-            tx.onerror = () => {
-                db.close();
-                reject(tx.error);
-            };
-        };
-        request.onerror = () => reject(request.error);
-    });
-}
-
-        // ========== GET PRIZES ==========
-        async function getPrizes() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(window.DB_NAME, window.DB_VERSION);
-                request.onsuccess = function(event) {
-                    const db = event.target.result;
-                    
-                    if (!db.objectStoreNames.contains("prizes")) {
-                        db.close();
-                        resolve([]);
-                        return;
-                    }
-                    
-                    const tx = db.transaction(["prizes"], "readonly");
-                    const store = tx.objectStore("prizes");
-                    const getRequest = store.getAll();
-                    
-                    getRequest.onsuccess = () => {
-                        resolve(getRequest.result);
-                    };
-                    
-                    getRequest.onerror = () => {
-                        reject(getRequest.error);
-                    };
-                    
-                    tx.oncomplete = () => {
-                        db.close();
-                    };
-                };
-                request.onerror = function(event) {
-                    reject(event.target.error);
-                };
-            });
-        }
-
 
     </script>
 

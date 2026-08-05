@@ -1,6 +1,6 @@
 // assets/db-config.js
 const DB_NAME = "EliteLuckyDrawDB";
-const CURRENT_VERSION = 23; 
+const CURRENT_VERSION = 29; 
 
 // Data default stages
 const DEFAULT_STAGES = [
@@ -22,7 +22,8 @@ async function isDatabaseExists() {
                            db.objectStoreNames.contains("winners") ||
                            db.objectStoreNames.contains("prizes") ||
                            db.objectStoreNames.contains("bulk_draws") ||
-                           db.objectStoreNames.contains("standalone_preset");
+                           db.objectStoreNames.contains("standalone_preset") ||
+                           db.objectStoreNames.contains("tables");
             db.close();
             resolve(exists);
         };
@@ -82,6 +83,7 @@ async function initDatabase() {
             if (db.objectStoreNames.contains("prizes")) db.deleteObjectStore("prizes");
             if (db.objectStoreNames.contains("bulk_draws")) db.deleteObjectStore("bulk_draws");
             if (db.objectStoreNames.contains("standalone_preset")) db.deleteObjectStore("standalone_preset");
+            if (db.objectStoreNames.contains("tables")) db.deleteObjectStore("tables");
             
             // 1. Attendances
             const attendancesStore = db.createObjectStore("attendances", { keyPath: "id" });
@@ -97,6 +99,7 @@ async function initDatabase() {
             winnersStore.createIndex("stage_id", "stage_id", { unique: false });
             winnersStore.createIndex("prize_id", "prize_id", { unique: false });
             winnersStore.createIndex("drawn_at", "drawn_at", { unique: false });
+            winnersStore.createIndex("is_redrawn", "is_redrawn", { unique: false }); 
             
             // 3. Draw Stages
             const drawStagesStore = db.createObjectStore("draw_stages", { keyPath: "id" });
@@ -114,7 +117,7 @@ async function initDatabase() {
             bulkDrawsStore.createIndex("table_number", "table_number", { unique: false });
             bulkDrawsStore.createIndex("drawn_at", "drawn_at", { unique: false });
 
-            // 6. STANDALONE PRESET 
+            // 6. STANDALONE PRESET
             console.log('[DB] Creating standalone_preset store...');
             const standalonePresetStore = db.createObjectStore("standalone_preset", { keyPath: "id" });
             standalonePresetStore.createIndex("round", "round", { unique: false });
@@ -122,6 +125,14 @@ async function initDatabase() {
             standalonePresetStore.createIndex("status", "status", { unique: false });
             standalonePresetStore.createIndex("lucky_number", "lucky_number", { unique: false });
             console.log('[DB] standalone_preset store created successfully');
+            
+            // 7. TABLES
+            console.log('[DB] Creating tables store...');
+            const tablesStore = db.createObjectStore("tables", { keyPath: "id", autoIncrement: true });
+            tablesStore.createIndex("table_name", "table_name", { unique: false });
+            tablesStore.createIndex("total_seats", "total_seats", { unique: false });
+            tablesStore.createIndex("created_at", "created_at", { unique: false });
+            console.log('[DB] tables store created successfully');
         };
     });
 }
